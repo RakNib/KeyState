@@ -1,4 +1,4 @@
-# KeyState V1.1
+# KeyState V1.2
 
 > Lightweight Windows real-time keyboard state overlay monitor
 
@@ -35,13 +35,17 @@ Suitable for game streaming, key teaching, input method testing, keyboard showca
 | Section | Features |
 |---------|----------|
 | **Language** | Chinese / English / Japanese |
-| **Basic Settings** | Show Total / Show KPS / Show Summary / Show History / Show BPM / Click Through |
-| **Layout** | Key Size (30-200px) + Key Spacing (0-40px) |
-| **Track** | Track Height (20-600px) + Grow Speed + Float Speed + Block Max% |
-| **Visual** | Theme presets (Custom/Neon/Minimal/Forest) + Border Width + Opacity |
+| **Basic Settings** | Show Total / Show KPS / Show Summary / Show History / Show BPM / Click Through / Always on Top |
+| **Layout** | Key Size (30-200px) + Key Spacing (0-40px) + Border Width (0-8px) |
+| **Track** | Track Height (20-600px) + Grow Speed + Float Speed + Block Max% + Track Gap + Background Alpha + Block Alpha + Border Lines toggle |
+| **Visual** | 16 theme presets (Custom + 15 built-in) + Font selector + Overlay Opacity |
 | **Key Mapping** | Press any key to capture and add / Delete (at least 1 required); 5-layer key name fallback |
 | **Appearance** | Adjust font color / normal background / press background (system color picker) |
-| **BPM** | Select note division basis (8th/16th/32nd/64th) |
+| **BPM** | Note division (8th/16th/32nd/64th) + Merge window (0-100ms) |
+| **Summary Box Colors** | Independent background & text colors for Total / KPS / BPM boxes |
+| **Chart** | Show / Hide + Grid lines + Time range (1-30s) + Width/Height + Margins + Rounded corners + BG/Line colors |
+| **Chart Snap** | Snap below key display with adjustable X/Y offset |
+| **Render FPS** | 25 / 45 / 60 / 90 / 120 FPS |
 
 ---
 
@@ -52,6 +56,7 @@ Suitable for game streaming, key teaching, input method testing, keyboard showca
 | **Drag floating window** | Hold and drag the State window freely, auto-saves on release |
 | **Right-click window / tray** | Popup menu: Settings / Exit |
 | **Ctrl+Shift+K** | Global hotkey to open settings panel |
+| **Ctrl+Shift+T** | Global hotkey to open theme editor |
 | **Settings panel X** | Hide settings panel |
 | **Settings panel scroll** | Fixed 700px height window, use mouse wheel or drag scrollbar |
 
@@ -63,16 +68,31 @@ Suitable for game streaming, key teaching, input method testing, keyboard showca
 
 Each key has a vertical transparent track above it. When pressed, a **block grows from the bottom in real time**; when released, it is cut off and floats upward at a constant speed before fading out. Block width matches the key box, height = press duration x grow speed.
 
+### KPS Real-time Line Chart
+
+An independent transparent overlay window showing real-time KPS trend:
+- Dynamic Y-axis that smoothly scales with peak values
+- Configurable time range (1~30 seconds), grid lines, and rounded corners
+- Customizable background/line colors, margins, and dimensions
+- Current value label at the rightmost point
+- **Snap mode**: attach below the key display with adjustable X/Y offset
+
 ### BPM Rhythm Analysis
 
 An independent BPM box displayed next to the summary box:
 - Total KPS x 240 / note division = equivalent BPM
 - Selectable note division: 8th / 16th / 32nd / 64th
+- BPM merge window (0~100ms) deduplicates simultaneous presses for more accurate calculation
 
-### Theme Presets
+### Theme System
 
-| Name | Style |
-|------|-------|
+- **16 theme presets** (Custom + 15 built-in) with individual font/normal/press/chart colors
+- **Theme Editor** (Ctrl+Shift+T): independent dialog to freely edit any preset's name and colors
+- Presets saved to a separate `KeyStateThemes.json` file
+- Each preset defines: font color, normal background, press background, chart background, chart line color
+
+| Sample | Style |
+|--------|-------|
 | Custom | Manual color picker |
 | Neon | Pink-purple text + dark purple background + bright pink press |
 | Minimal | Dark gray text + light gray background + medium gray press |
@@ -80,13 +100,13 @@ An independent BPM box displayed next to the summary box:
 
 ---
 
-## Configuration File
+## Configuration Files
 
-- File name: `KeyStateSetting.json`
+- `KeyStateSetting.json` -- main config: key list, colors, position, size, display options, language, FPS, chart settings, etc.
+- `KeyStateThemes.json` -- theme presets database (15 built-in presets)
 - Location: Same directory as `KeyState.exe`
-- Automatically created with default config on first run
+- Automatically created with defaults on first run
 - Any setting change is **auto-saved instantly** and persists across restarts
-- Contains: key list, colors, position, size, display options, language, FPS, etc.
 
 ---
 
@@ -106,17 +126,25 @@ An independent BPM box displayed next to the summary box:
 ```
 src/
 +-- main.cpp          # Entry point, message pump, tray, hotkeys
-+-- config.h/cpp      # Config struct + JSON read/write
++-- config.h/cpp      # Config struct + JSON read/write + theme presets
 +-- keyboard.h/cpp    # Keyboard hook, state management, KPS, duration tracking
 +-- renderer.h/cpp    # GDI+ rendering, easing animation, track, summary, BPM
 +-- display_ui.h/cpp  # State transparent overlay, drag
++-- chart_ui.h/cpp    # KPS real-time line chart overlay
 +-- settings_ui.h/cpp # Settings panel, color picker, Theme, scroll
++-- theme_editor.h/cpp# Theme preset editor dialog
 +-- lang.h/cpp        # Multi-language string table
 ```
 
 ---
 
 ## Version History
+
+### V1.2 (2026-06)
+
+- Added: Font selection dialog — supports any installed system font
+- Added: Always on top toggle
+- Improved: 500ms auto-re-raise to resist fullscreen app occlusion
 
 ### V1.1 (2026-06)
 
@@ -138,7 +166,7 @@ src/
 - Sigma summary box + Beta BPM box
 - 4 Theme presets + border width + opacity
 - Chinese / English / Japanese multi-language support
-- Adjustable render FPS (25/45/60/90/120)
+- Adjustable render FPS (45/60/90/120)
 - JSON config persistence in exe directory
 - Drag-to-position memory
 - System tray + global hotkeys
