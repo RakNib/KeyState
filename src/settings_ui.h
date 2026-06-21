@@ -1,0 +1,119 @@
+#pragma once
+
+#include <windows.h>
+#include <string>
+#include <commctrl.h>
+#include "config.h"
+#include "display_ui.h"
+class ChartUI;
+class ThemeEditor;
+class KeyStateManager;
+
+struct SwatchData { RgbaColor* color = nullptr; };
+
+// Settings 界面 — 配置管理窗口
+class SettingsUI {
+public:
+    SettingsUI();
+    ~SettingsUI();
+
+    bool Create(HINSTANCE hInst, AppConfig* cfg, DisplayUI* display, ChartUI* chart, ThemeEditor* te, KeyStateManager* ksm);
+    void Show(bool visible);
+    void SetConfigPath(const wchar_t* path) { m_configPath = path; }
+    HWND GetHwnd() const { return m_hwnd; }
+
+    void RefreshControls();
+    void RebuildWindow();
+
+private:
+    static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
+    void OnCreate(HWND hwnd);
+    void OnCommand(WPARAM wp, LPARAM lp);
+    void OnHScroll(WPARAM wp, LPARAM lp);
+    void OnVScroll(WPARAM wp, LPARAM lp);
+    void OnMouseWheel(WPARAM wp);
+    void OnDestroy();
+
+    void RefreshKeyList();
+    void UpdateColorSwatches(int selIdx);
+    void OnAddKey();
+    void OnDeleteKey();
+    void OnPickColor(int target);
+    void OnPickBoxColor(int cid);
+    void OnPickChartColor(int cid);
+    void OnResetTotals();
+    void OnResetDefaults();
+    void OnSave();
+    void ApplyTheme(int tid);
+    void SyncSpacingEdit();
+    void SyncKeySizeEdit();
+    void SyncHistoryHEdit();
+    void SyncGrowSpdEdit();
+    void SyncFloatSpdEdit();
+    void SyncBlockMaxEdit();
+    void SyncBorderEdit();
+    void SyncOpacityEdit();
+    void SyncTrackGapEdit();
+    void SyncBpmMergeEdit();
+    void SyncTrackAlphaEdit();
+    void SyncBlockAlphaEdit();
+
+    HWND          m_hwnd        = nullptr;
+    HINSTANCE     m_hInst       = nullptr;
+    AppConfig*    m_cfg         = nullptr;
+    DisplayUI*    m_display     = nullptr;
+    ChartUI*      m_chart       = nullptr;
+    ThemeEditor*  m_themeEditor = nullptr;
+    KeyStateManager* m_ksm      = nullptr;
+    int           m_selectedKey = -1;
+    std::wstring  m_configPath;
+
+    // 控件句柄
+    HWND m_chkTotal, m_chkKPS, m_chkSummary, m_chkHistory, m_chkBPM, m_chkThrough;
+    HWND m_radioNote8, m_radioNote16, m_radioNote32, m_radioNote64;
+    HWND m_radioLangCN, m_radioLangEN, m_radioLangJP;
+    HWND m_trackKeySize, m_editKeySize;
+    HWND m_trackSpacing, m_editSpacing;
+    HWND m_trackHistoryH, m_editHistoryH;
+    HWND m_trackGrowSpd,  m_editGrowSpd;
+    HWND m_trackFloatSpd, m_editFloatSpd;
+    HWND m_trackBlockMax, m_editBlockMax;
+    HWND m_trackBorder,   m_editBorder;
+    HWND m_trackOpacity,  m_editOpacity;
+    HWND m_trackTrackGap, m_editTrackGap;
+    HWND m_trackBpmMerge, m_editBpmMerge;
+    HWND m_trackTrackAlpha, m_editTrackAlpha;
+    HWND m_trackBlockAlpha, m_editBlockAlpha;
+    HWND m_radioTheme0, m_radioTheme1, m_radioTheme2, m_radioTheme3;
+    HWND m_radioTheme4, m_radioTheme5, m_radioTheme6, m_radioTheme7;
+    HWND m_radioTheme8, m_radioTheme9, m_radioTheme10, m_radioTheme11;
+    HWND m_radioTheme12, m_radioTheme13, m_radioTheme14, m_radioTheme15;
+    HWND m_radioFps25, m_radioFps45, m_radioFps60, m_radioFps90, m_radioFps120;
+    HWND m_listKeys, m_btnAdd, m_btnDel;
+    HWND m_swFont, m_swNormal, m_swPress;
+    HWND m_lblFont, m_lblNormal, m_lblPress;
+    HWND m_btnSave, m_btnResetTotal, m_btnResetAll, m_btnThemeEdit;
+    // Tab 导航
+    HWND m_tabCtrl;
+    int  m_activeTab = 0;
+    std::vector<HWND> m_tabCtrls[5];  // 每页的控件列表
+    void SwitchTab(int page);
+    enum { TAB_DISPLAY=0, TAB_LAYOUT, TAB_THEME, TAB_CHART, TAB_KEYS, TAB_COUNT=5 };
+    HWND m_swBox[6];
+    // Chart 控件
+    HWND m_chkChart;
+    HWND m_trackChartTime, m_editChartTime;
+    HWND m_trackChartW, m_editChartW;
+    HWND m_trackChartH, m_editChartH;
+    HWND m_trackChartML, m_editChartML;
+    HWND m_trackChartMR, m_editChartMR;
+    HWND m_trackChartMT, m_editChartMT;
+    HWND m_trackChartMB, m_editChartMB;
+    HWND m_swChartBg, m_swChartLine, m_lblChartBg, m_lblChartLine;
+    HWND m_trackChartRadius, m_editChartRadius;
+
+    HFONT m_hFont      = nullptr;
+    int   m_scrollY    = 0;       // 滚动偏移
+    int   m_contentH   = 0;       // 内容总高度
+    static constexpr int kVisibleH = 780; // 可见窗口高度
+};

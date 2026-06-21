@@ -1,0 +1,128 @@
+    // ===== Key Size + Spacing =====
+    lbl(LANG(8), 20, 172, 180, 22);
+    m_trackKeySize = ctl(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 20, 198, 370, 30, CID_TRACK_KEYSIZE);
+    SendMessageW(m_trackKeySize, TBM_SETRANGE, TRUE, MAKELPARAM(30, 200));
+    if (m_cfg) SendMessageW(m_trackKeySize, TBM_SETPOS, TRUE, m_cfg->keySize);
+    m_editKeySize = ctl(L"EDIT", L"", ES_CENTER | ES_NUMBER | WS_BORDER, 400, 198, 50, 24, CID_EDIT_KEYSIZE);
+    SyncKeySizeEdit();
+
+    lbl(LANG(9), 20, 236, 180, 22);
+    m_trackSpacing = ctl(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS, 20, 262, 370, 30, CID_TRACK_SPACING);
+    SendMessageW(m_trackSpacing, TBM_SETRANGE, TRUE, MAKELPARAM(0, 40));
+    if (m_cfg) SendMessageW(m_trackSpacing, TBM_SETPOS, TRUE, m_cfg->keySpacing);
+    m_editSpacing = ctl(L"EDIT", L"", ES_CENTER | ES_NUMBER | WS_BORDER, 400, 262, 50, 24, CID_EDIT_SPACING);
+    SyncSpacingEdit();
+
+    // ===== BPM Merge =====
+    lbl(L"BPM Merge (ms)", 20, 300, 180, 22);
+    m_trackBpmMerge = ctl(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS, 20, 326, 370, 30, CID_TRACK_BPMMERGE);
+    SendMessageW(m_trackBpmMerge, TBM_SETRANGE, TRUE, MAKELPARAM(0, 100));
+    if (m_cfg) SendMessageW(m_trackBpmMerge, TBM_SETPOS, TRUE, m_cfg->bpmMergeMs);
+    m_editBpmMerge = ctl(L"EDIT", L"", ES_CENTER | ES_NUMBER | WS_BORDER, 400, 326, 50, 24, CID_EDIT_BPMMERGE);
+    SyncBpmMergeEdit();
+
+    // ===== Theme + Custom + Border + Opacity =====
+    lbl(L"\U0001F3A8 Theme", 20, 368, 120, 22);
+    m_radioTheme0 = ctl(L"BUTTON", L"\u81EA\u5B9A\u4E49", BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, 130, 368, 65, 22, CID_RADIO_THEME0);
+    m_radioTheme1 = ctl(L"BUTTON", L"\u9713\u8679", BS_AUTORADIOBUTTON | WS_TABSTOP, 200, 368, 55, 22, CID_RADIO_THEME1);
+    m_radioTheme2 = ctl(L"BUTTON", L"\u6781\u7B80", BS_AUTORADIOBUTTON | WS_TABSTOP, 260, 368, 55, 22, CID_RADIO_THEME2);
+    m_radioTheme3 = ctl(L"BUTTON", L"\u68EE\u6797", BS_AUTORADIOBUTTON | WS_TABSTOP, 320, 368, 55, 22, CID_RADIO_THEME3);
+    if (m_cfg) { int th=m_cfg->theme;
+        SendMessageW(m_radioTheme0,BM_SETCHECK,(th==0)?BST_CHECKED:BST_UNCHECKED,0);
+        SendMessageW(m_radioTheme1,BM_SETCHECK,(th==1)?BST_CHECKED:BST_UNCHECKED,0);
+        SendMessageW(m_radioTheme2,BM_SETCHECK,(th==2)?BST_CHECKED:BST_UNCHECKED,0);
+        SendMessageW(m_radioTheme3,BM_SETCHECK,(th==3)?BST_CHECKED:BST_UNCHECKED,0); }
+
+    lbl(L"Custom Themes", 20, 396, 150, 22);
+    m_listCustTheme = ctl(L"LISTBOX", L"", LBS_NOTIFY | WS_VSCROLL | WS_BORDER, 20, 420, 370, 55, CID_LIST_CUSTHEME);
+    m_btnCustomSave = ctl(L"BUTTON", L"Save", BS_PUSHBUTTON, 405, 420, 100, 28, CID_BTN_CUSTOMSV);
+    m_btnCustomApply= ctl(L"BUTTON", L"Apply",BS_PUSHBUTTON, 405, 454, 100, 28, CID_BTN_CUSTAPPLY);
+    m_btnCustomDel  = ctl(L"BUTTON", L"Del",  BS_PUSHBUTTON, 405, 488, 100, 28, CID_BTN_CUSTDEL);
+    RefreshCustomThemeList();
+
+    lbl(L"Border W (px)", 20, 498, 180, 22);
+    m_trackBorder = ctl(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS, 20, 524, 370, 30, CID_TRACK_BORDER);
+    SendMessageW(m_trackBorder, TBM_SETRANGE, TRUE, MAKELPARAM(0, 8));
+    if (m_cfg) SendMessageW(m_trackBorder, TBM_SETPOS, TRUE, m_cfg->keyBorderW);
+    m_editBorder = ctl(L"EDIT", L"", ES_CENTER | ES_NUMBER | WS_BORDER, 400, 524, 50, 24, CID_EDIT_BORDER);
+    SyncBorderEdit();
+
+    lbl(L"Opacity (%)", 20, 562, 180, 22);
+    m_trackOpacity = ctl(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS, 20, 588, 370, 30, CID_TRACK_OPACITY);
+    SendMessageW(m_trackOpacity, TBM_SETRANGE, TRUE, MAKELPARAM(10, 100));
+    if (m_cfg) SendMessageW(m_trackOpacity, TBM_SETPOS, TRUE, (int)(m_cfg->overlayOpacity * 100));
+    m_editOpacity = ctl(L"EDIT", L"", ES_CENTER | ES_NUMBER | WS_BORDER, 400, 588, 50, 24, CID_EDIT_OPACITY);
+    SyncOpacityEdit();
+
+    // ===== Track =====
+    lbl(LANG(10), 20, 630, 180, 22);
+    m_trackHistoryH = ctl(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS, 20, 656, 370, 30, CID_TRACK_HISTORYH);
+    SendMessageW(m_trackHistoryH, TBM_SETRANGE, TRUE, MAKELPARAM(20, 600));
+    if (m_cfg) SendMessageW(m_trackHistoryH, TBM_SETPOS, TRUE, m_cfg->historyTrackH);
+    m_editHistoryH = ctl(L"EDIT", L"", ES_CENTER | ES_NUMBER | WS_BORDER, 400, 656, 50, 24, CID_EDIT_HISTORYH);
+    SyncHistoryHEdit();
+
+    lbl(LANG(11), 20, 694, 180, 22);
+    m_trackGrowSpd = ctl(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS, 20, 720, 370, 30, CID_TRACK_GROWSPD);
+    SendMessageW(m_trackGrowSpd, TBM_SETRANGE, TRUE, MAKELPARAM(10, 300));
+    if (m_cfg) SendMessageW(m_trackGrowSpd, TBM_SETPOS, TRUE, m_cfg->historyGrowSpeed);
+    m_editGrowSpd = ctl(L"EDIT", L"", ES_CENTER | ES_NUMBER | WS_BORDER, 400, 720, 50, 24, CID_EDIT_GROWSPD);
+    SyncGrowSpdEdit();
+
+    lbl(LANG(12), 20, 758, 180, 22);
+    m_trackFloatSpd = ctl(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS, 20, 784, 370, 30, CID_TRACK_FLOATSPD);
+    SendMessageW(m_trackFloatSpd, TBM_SETRANGE, TRUE, MAKELPARAM(10, 300));
+    if (m_cfg) SendMessageW(m_trackFloatSpd, TBM_SETPOS, TRUE, m_cfg->historyFloatSpeed);
+    m_editFloatSpd = ctl(L"EDIT", L"", ES_CENTER | ES_NUMBER | WS_BORDER, 400, 784, 50, 24, CID_EDIT_FLOATSPD);
+    SyncFloatSpdEdit();
+
+    lbl(L"Track Gap (px)", 20, 822, 180, 22);
+    m_trackTrackGap = ctl(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS, 20, 848, 370, 30, CID_TRACK_TRACKGAP);
+    SendMessageW(m_trackTrackGap, TBM_SETRANGE, TRUE, MAKELPARAM(0, 30));
+    if (m_cfg) SendMessageW(m_trackTrackGap, TBM_SETPOS, TRUE, m_cfg->historyTrackGap);
+    m_editTrackGap = ctl(L"EDIT", L"", ES_CENTER | ES_NUMBER | WS_BORDER, 400, 848, 50, 24, CID_EDIT_TRACKGAP);
+    SyncTrackGapEdit();
+
+    lbl(LANG(13), 20, 886, 180, 22);
+    m_trackBlockMax = ctl(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS, 20, 912, 370, 30, CID_TRACK_BLOCKMAX);
+    SendMessageW(m_trackBlockMax, TBM_SETRANGE, TRUE, MAKELPARAM(10, 100));
+    if (m_cfg) SendMessageW(m_trackBlockMax, TBM_SETPOS, TRUE, m_cfg->historyBlockMax);
+    m_editBlockMax = ctl(L"EDIT", L"", ES_CENTER | ES_NUMBER | WS_BORDER, 400, 912, 50, 24, CID_EDIT_BLOCKMAX);
+    SyncBlockMaxEdit();
+
+    // ===== FPS =====
+    lbl(LANG(14), 20, 954, 100, 22);
+    m_radioFps25 = ctl(L"BUTTON", L"25", BS_AUTORADIOBUTTON | WS_GROUP, 100, 954, 45, 22, CID_RADIO_FPS25);
+    m_radioFps45 = ctl(L"BUTTON", L"45", BS_AUTORADIOBUTTON, 150, 954, 45, 22, CID_RADIO_FPS45);
+    m_radioFps60 = ctl(L"BUTTON", L"60", BS_AUTORADIOBUTTON, 200, 954, 45, 22, CID_RADIO_FPS60);
+    m_radioFps90 = ctl(L"BUTTON", L"90", BS_AUTORADIOBUTTON, 250, 954, 45, 22, CID_RADIO_FPS90);
+    m_radioFps120= ctl(L"BUTTON", L"120",BS_AUTORADIOBUTTON, 300, 954, 45, 22, CID_RADIO_FPS120);
+    if (m_cfg) { int f=m_cfg->fps;
+        SendMessageW(m_radioFps25,BM_SETCHECK,(f==25)?BST_CHECKED:BST_UNCHECKED,0);
+        SendMessageW(m_radioFps45,BM_SETCHECK,(f==45)?BST_CHECKED:BST_UNCHECKED,0);
+        SendMessageW(m_radioFps60,BM_SETCHECK,(f==60)?BST_CHECKED:BST_UNCHECKED,0);
+        SendMessageW(m_radioFps90,BM_SETCHECK,(f==90)?BST_CHECKED:BST_UNCHECKED,0);
+        SendMessageW(m_radioFps120,BM_SETCHECK,(f==120)?BST_CHECKED:BST_UNCHECKED,0); }
+
+    // ===== Key Mappings =====
+    lbl(LANG(15), 20, 994, 150, 22);
+    m_listKeys = ctl(L"LISTBOX", L"", LBS_NOTIFY | WS_VSCROLL | WS_BORDER, 20, 1020, 370, 110, CID_LIST_KEYS);
+    m_btnAdd   = ctl(L"BUTTON", LANG(16), BS_PUSHBUTTON, 405, 1020, 100, 32, CID_BTN_ADD);
+    m_btnDel   = ctl(L"BUTTON", LANG(17), BS_PUSHBUTTON, 405, 1062, 100, 32, CID_BTN_DEL);
+    RefreshKeyList();
+
+    // ===== Appearance =====
+    lbl(LANG(18), 20, 1156, 380, 22);
+    lbl(LANG(19), 20, 1186, 120, 24);
+    m_swFont  = ctl(SWATCH_CLASS, L"", SS_NOTIFY, 140, 1186, 36, 24, CID_SW_FONT);
+    m_lblFont = lbl(L"", 185, 1186, 200, 24);
+    lbl(LANG(20), 20, 1218, 120, 24);
+    m_swNormal  = ctl(SWATCH_CLASS, L"", SS_NOTIFY, 140, 1218, 36, 24, CID_SW_NORMAL);
+    m_lblNormal = lbl(L"", 185, 1218, 200, 24);
+    lbl(LANG(21), 20, 1250, 120, 24);
+    m_swPress  = ctl(SWATCH_CLASS, L"", SS_NOTIFY, 140, 1250, 36, 24, CID_SW_PRESS);
+    m_lblPress = lbl(L"", 185, 1250, 200, 24);
+
+    // ===== Save / Reset =====
+    m_btnSave = ctl(L"BUTTON", LANG(22), BS_PUSHBUTTON, 140, 1290, 120, 32, CID_BTN_SAVE);
+    m_btnResetTotal = ctl(L"BUTTON", LANG(23), BS_PUSHBUTTON, 280, 1290, 120, 32, CID_BTN_RESET_TOTAL);
