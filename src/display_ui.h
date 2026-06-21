@@ -19,6 +19,7 @@ public:
     HWND GetHwnd() const { return m_hwnd; }
 
     void SetClickThrough(bool enable);
+    void SetTopMost(bool enable);
     void SetNotifyHwnd(HWND h) { m_notifyHwnd = h; }
     void SetConfig(AppConfig* cfg) { m_cfg = cfg; }
     void SetConfigPath(const wchar_t* path) { m_configPath = path; }
@@ -39,4 +40,5 @@ private:
     void CleanupLastFrame();
     HBITMAP m_lastBmp   = nullptr;
     HDC     m_lastMemDC = nullptr;
+    uint64_t m_lastTopMostCheck = 0;  // 上次重新置顶时间（防全屏遮挡）
 };

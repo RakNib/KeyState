@@ -29,6 +29,7 @@ private:
 
     // 动画状态映射 keyCode → AnimState
     std::unordered_map<int, AnimState> m_anims;
+    std::wstring m_lastFontName;       // 当前加载的字体名，用于检测变更
 
     // 计算缓动因子 (0~1)，按下=100ms 缓入，松开=150ms 缓出
     float EaseFactor(int keyCode, bool nowPressed) const;

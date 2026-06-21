@@ -69,7 +69,7 @@ private:
     std::wstring  m_configPath;
 
     // 控件句柄
-    HWND m_chkTotal, m_chkKPS, m_chkSummary, m_chkHistory, m_chkBPM, m_chkThrough;
+    HWND m_chkTotal, m_chkKPS, m_chkSummary, m_chkHistory, m_chkTrackLines, m_chkBPM, m_chkThrough, m_chkTopMost;
     HWND m_radioNote8, m_radioNote16, m_radioNote32, m_radioNote64;
     HWND m_radioLangCN, m_radioLangEN, m_radioLangJP;
     HWND m_trackKeySize, m_editKeySize;
@@ -92,7 +92,7 @@ private:
     HWND m_listKeys, m_btnAdd, m_btnDel;
     HWND m_swFont, m_swNormal, m_swPress;
     HWND m_lblFont, m_lblNormal, m_lblPress;
-    HWND m_btnSave, m_btnResetTotal, m_btnResetAll, m_btnThemeEdit;
+    HWND m_btnSave, m_btnResetTotal, m_btnResetAll, m_btnThemeEdit, m_btnFont;
     // Tab 导航
     HWND m_tabCtrl;
     int  m_activeTab = 0;
@@ -101,7 +101,7 @@ private:
     enum { TAB_DISPLAY=0, TAB_LAYOUT, TAB_THEME, TAB_CHART, TAB_KEYS, TAB_COUNT=5 };
     HWND m_swBox[6];
     // Chart 控件
-    HWND m_chkChart;
+    HWND m_chkChart, m_chkChartGrid;
     HWND m_trackChartTime, m_editChartTime;
     HWND m_trackChartW, m_editChartW;
     HWND m_trackChartH, m_editChartH;

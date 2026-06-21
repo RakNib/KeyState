@@ -185,6 +185,12 @@ static const wchar_t* g_strings[][3] = {
     {L"图表",             L"Chart",              L"チャート"},
     // 87
     {L"按键",             L"Keys",               L"キー"},
+    // 88
+    {L"置顶显示",         L"Always On Top",      L"最前面に表示"},
+    // 89
+    {L"显示轨道线",       L"Show Track Lines",   L"トラック線表示"},
+    // 90
+    {L"显示网格线",       L"Show Grid Lines",    L"グリッド線表示"},
 };
 
 const wchar_t* LANG(int key) {

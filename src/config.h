@@ -46,6 +46,7 @@ struct AppConfig {
     int     historyTrackGap = 12;      // 轨道与按键间距 (px)
     int     historyTrackAlpha= 18;     // 轨道背景透明度 (0-100)
     int     historyBlockAlpha=255;     // 方块透明度 (0-255)
+    bool    historyShowLines = true;   // 显示轨道边界线
     RgbaColor totalBoxBg = {60,65,80,210};
     RgbaColor totalBoxFc = {220,225,240,255};
     RgbaColor kpsBoxBg   = {65,60,80,210};
@@ -54,12 +55,14 @@ struct AppConfig {
     RgbaColor bpmBoxFc   = {180,240,200,255};
     int     fps             = 90;      // 渲染帧率 (25/45/60/90/120)
     bool    clickThrough   = false;
+    bool    alwaysOnTop    = true;
     float   overlayOpacity = 0.95f;
     int     keySpacing     = 12;
     int     keySize        = 64;
     int     keyRadius      = 12;
     int     keyBorderW     = 2;       // 边框宽度 (px)
     int     keyFontSize    = 26;      // 按键字体大小
+    std::wstring keyFontName = L"Segoe UI";  // 按键字体名称
     int     theme          = 0;       // 0=自定义
     int     displayX       = 100;
     int     displayY       = 100;
@@ -78,6 +81,7 @@ struct AppConfig {
     RgbaColor chartBgCol   = {18, 18, 22, 255};
     RgbaColor chartLineCol = {100, 255, 130, 255};
     int     chartRadius    = 8;       // 圆角半径
+    bool    chartShowGrid  = true;    // 显示图表网格线
     bool    chartSnap      = false;   // 吸附到按键映射框下方
     int     chartSnapOffsetX = 12;    // 吸附 X 偏移 (px)
     int     chartSnapOffsetY = 16;    // 吸附 Y 偏移 (px)

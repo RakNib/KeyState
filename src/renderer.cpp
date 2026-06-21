@@ -85,6 +85,23 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
     Gdiplus::Graphics g(&bmp);
     g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
     g.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAliasGridFit);
+
+    // 字体变更时热更新
+    if (cfg.keyFontName != m_lastFontName) {
+        m_lastFontName = cfg.keyFontName;
+        delete m_fontFamily;
+        m_fontFamily = new Gdiplus::FontFamily(cfg.keyFontName.c_str());
+        if (!m_fontFamily->IsAvailable()) {
+            delete m_fontFamily;
+            m_fontFamily = new Gdiplus::FontFamily(L"Segoe UI");
+            m_lastFontName = L"Segoe UI";
+        }
+        delete m_keyFont;
+        delete m_statFont;
+        m_keyFont  = new Gdiplus::Font(m_fontFamily, 26, Gdiplus::FontStyleBold, Gdiplus::UnitPixel);
+        m_statFont = new Gdiplus::Font(m_fontFamily, 12, Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
+    }
+
     g.Clear(Gdiplus::Color(0, 0, 0, 0));
 
     // 汇总数据
@@ -341,9 +358,11 @@ void Renderer::DrawHistoryTrack(Gdiplus::Graphics& g, const AppConfig& cfg, int 
     g.FillRectangle(&trackBg, x, y, keyW, trackH);
 
     // 轨道边界线
-    Gdiplus::Pen edgePen(Gdiplus::Color(35, 255, 255, 255), 1.0f);
-    g.DrawLine(&edgePen, x, y, x, y + trackH);
-    g.DrawLine(&edgePen, x + keyW, y, x + keyW, y + trackH);
+    if (cfg.historyShowLines) {
+        Gdiplus::Pen edgePen(Gdiplus::Color(35, 255, 255, 255), 1.0f);
+        g.DrawLine(&edgePen, x, y, x, y + trackH);
+        g.DrawLine(&edgePen, x + keyW, y, x + keyW, y + trackH);
+    }
 
     uint64_t now = GetTickCount64();
     const int   blockW  = keyW - 4;

@@ -78,6 +78,16 @@ void DisplayUI::UpdateOverlay(const AppConfig& cfg, const KeyStateManager& ksm) 
 
     ReleaseDC(nullptr, hdcScreen);
 
+    // 每 500ms 重新置顶一次，对抗全屏应用遮挡
+    if (cfg.alwaysOnTop) {
+        uint64_t now = GetTickCount64();
+        if (now - m_lastTopMostCheck > 500) {
+            m_lastTopMostCheck = now;
+            SetWindowPos(m_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        }
+    }
+
     CleanupLastFrame();
     m_lastBmp   = hBmp;
     m_lastMemDC = hMemDC;
@@ -98,6 +108,12 @@ void DisplayUI::SetClickThrough(bool enable) {
     SetWindowLongW(m_hwnd, GWL_EXSTYLE, ex);
     SetWindowPos(m_hwnd, nullptr, 0, 0, 0, 0,
                  SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+}
+
+void DisplayUI::SetTopMost(bool enable) {
+    if (!m_hwnd) return;
+    SetWindowPos(m_hwnd, enable ? HWND_TOPMOST : HWND_NOTOPMOST,
+                 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
 // ========== 窗口过程 ==========

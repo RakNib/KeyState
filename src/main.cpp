@@ -232,6 +232,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     g_display.SetConfig(&g_config);
     g_display.SetConfigPath(cfgPath.c_str());       // 拖拽保存用
     g_display.SetClickThrough(g_config.clickThrough);
+    g_display.SetTopMost(g_config.alwaysOnTop);
     g_display.SetNotifyHwnd(g_hMainWnd);
     g_display.Show(true);
 
@@ -239,6 +240,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     g_chart.Create(hInstance);
     g_chart.SetConfig(&g_config);
     g_chart.SetConfigPath(cfgPath.c_str());
+    g_chart.SetTopMost(g_config.alwaysOnTop);
     g_chart.SetNotifyHwnd(g_hMainWnd);
     g_chart.Show(g_config.showChart);
 

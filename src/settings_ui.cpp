@@ -110,6 +110,10 @@ enum {
     CID_EDIT_CHART_SNAPX  = 209,
     CID_TRACK_CHART_SNAPY = 210,
     CID_EDIT_CHART_SNAPY  = 211,
+    CID_CHK_TOP_MOST      = 212,
+    CID_BTN_FONT          = 213,
+    CID_CHK_TRACK_LINES   = 214,
+    CID_CHK_CHART_GRID    = 215,
 };
 
 // 色块控件
@@ -262,9 +266,10 @@ void SettingsUI::OnCreate(HWND hwnd) {
     m_chkKPS = ctl(L"BUTTON", LANG(3), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 135, y, 120, 24, CID_CHK_KPS);
     m_chkBPM = ctl(L"BUTTON", LANG(6), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 260, y, 120, 24, CID_CHK_BPM);
     y += 28;
-    // Row 2: 汇总 + 穿透
-    m_chkSummary = ctl(L"BUTTON", LANG(4), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 140, 24, CID_CHK_SUMMARY);
-    m_chkThrough = ctl(L"BUTTON", LANG(7), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 150, y, 160, 24, CID_CHK_THROUGH);
+    // Row 2: 汇总 + 穿透 + 顶层置顶
+    m_chkSummary = ctl(L"BUTTON", LANG(4), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 130, 24, CID_CHK_SUMMARY);
+    m_chkThrough = ctl(L"BUTTON", LANG(7), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 135, y, 140, 24, CID_CHK_THROUGH);
+    m_chkTopMost = ctl(L"BUTTON", LANG(88), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 280, y, 150, 24, CID_CHK_TOP_MOST);
     y += 28;
     // Row 3: BPM 分音基准
     lbl(L"BPM:", CX, y, 45, 24);
@@ -273,12 +278,17 @@ void SettingsUI::OnCreate(HWND hwnd) {
     m_radioNote32 = ctl(L"BUTTON", LANG(39), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 163, y, 55, 24, CID_RADIO_NOTE32);
     m_radioNote64 = ctl(L"BUTTON", LANG(40), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 223, y, 55, 24, CID_RADIO_NOTE64);
     y += 30;
+    // Row 4: 字体选择
+    m_btnFont = ctl(L"BUTTON", L"选择字体", BS_PUSHBUTTON | WS_TABSTOP, CX, y, 100, 24, CID_BTN_FONT);
+    { wchar_t fb[64]; swprintf(fb, 64, L"%ls", m_cfg->keyFontName.c_str()); lbl(fb, CX + 108, y, 240, 24); }
+    y += 34;
     if (m_cfg) {
         SendMessageW(m_chkTotal, BM_SETCHECK, m_cfg->showTotal ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(m_chkKPS, BM_SETCHECK, m_cfg->showKPS ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(m_chkBPM, BM_SETCHECK, m_cfg->showBPM ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(m_chkSummary, BM_SETCHECK, m_cfg->showSummary ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(m_chkThrough, BM_SETCHECK, m_cfg->clickThrough ? BST_CHECKED : BST_UNCHECKED, 0);
+        SendMessageW(m_chkTopMost, BM_SETCHECK, m_cfg->alwaysOnTop ? BST_CHECKED : BST_UNCHECKED, 0);
         int nd = m_cfg->bpmNoteDiv;
         SendMessageW(m_radioNote8, BM_SETCHECK, (nd == 8) ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(m_radioNote16, BM_SETCHECK, (nd != 8 && nd != 32 && nd != 64) ? BST_CHECKED : BST_UNCHECKED, 0);
@@ -325,8 +335,12 @@ void SettingsUI::OnCreate(HWND hwnd) {
 
     // 5. Track + BPM + FPS
     div(y);
-    m_chkHistory = ctl(L"BUTTON", LANG(5), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 160, 24, CID_CHK_HISTORY); y += 28;
-    if (m_cfg) SendMessageW(m_chkHistory, BM_SETCHECK, m_cfg->showHistory ? BST_CHECKED : BST_UNCHECKED, 0);
+    m_chkHistory = ctl(L"BUTTON", LANG(5), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 130, 24, CID_CHK_HISTORY);
+    m_chkTrackLines = ctl(L"BUTTON", LANG(89), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 140, y, 150, 24, CID_CHK_TRACK_LINES); y += 28;
+    if (m_cfg) {
+        SendMessageW(m_chkHistory, BM_SETCHECK, m_cfg->showHistory ? BST_CHECKED : BST_UNCHECKED, 0);
+        SendMessageW(m_chkTrackLines, BM_SETCHECK, m_cfg->historyShowLines ? BST_CHECKED : BST_UNCHECKED, 0);
+    }
     mks(CX, y, LANG(10), CID_TRACK_HISTORYH, CID_EDIT_HISTORYH, m_trackHistoryH, m_editHistoryH, 20, 600, m_cfg->historyTrackH, 10); SyncHistoryHEdit();
     mks(CX, y, LANG(11), CID_TRACK_GROWSPD, CID_EDIT_GROWSPD, m_trackGrowSpd, m_editGrowSpd, 10, 300, m_cfg->historyGrowSpeed, 20); SyncGrowSpdEdit();
     mks(CX, y, LANG(12), CID_TRACK_FLOATSPD, CID_EDIT_FLOATSPD, m_trackFloatSpd, m_editFloatSpd, 10, 300, m_cfg->historyFloatSpeed, 20); SyncFloatSpdEdit();
@@ -366,8 +380,12 @@ void SettingsUI::OnCreate(HWND hwnd) {
     // 7. Chart
     div(y);
     lbl(LANG(58), CX, y, 120, 20); y += 26;
-    m_chkChart = ctl(L"BUTTON", LANG(59), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 160, 24, CID_CHK_CHART);
-    if (m_cfg) SendMessageW(m_chkChart, BM_SETCHECK, m_cfg->showChart ? BST_CHECKED : BST_UNCHECKED, 0); y += 36;
+    m_chkChart = ctl(L"BUTTON", LANG(59), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 140, 24, CID_CHK_CHART);
+    m_chkChartGrid = ctl(L"BUTTON", LANG(90), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 150, y, 140, 24, CID_CHK_CHART_GRID); y += 36;
+    if (m_cfg) {
+        SendMessageW(m_chkChart, BM_SETCHECK, m_cfg->showChart ? BST_CHECKED : BST_UNCHECKED, 0);
+        SendMessageW(m_chkChartGrid, BM_SETCHECK, m_cfg->chartShowGrid ? BST_CHECKED : BST_UNCHECKED, 0);
+    }
     mks(CX, y, LANG(60), CID_TRACK_CHARTTIME, CID_EDIT_CHARTTIME, m_trackChartTime, m_editChartTime, 1, 30, m_cfg->chartTimeRange / 1000, 1);
     { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartTimeRange / 1000); SetWindowTextW(m_editChartTime, tb); }
     lbl(LANG(61), CX, y, 60, 24); m_swChartBg = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 70, y, 30, 24, CID_SW_CHARTBG); m_lblChartBg = lbl(L"", CX + 106, y, 120, 24);
@@ -431,6 +449,9 @@ void SettingsUI::OnCommand(WPARAM wp, LPARAM lp) {
     case CID_CHK_HISTORY:
         if (m_cfg) { m_cfg->showHistory = (SendMessageW(m_chkHistory, BM_GETCHECK, 0, 0) == BST_CHECKED); OnSave(); }
         break;
+    case CID_CHK_TRACK_LINES:
+        if (m_cfg) { m_cfg->historyShowLines = (SendMessageW(m_chkTrackLines, BM_GETCHECK, 0, 0) == BST_CHECKED); OnSave(); }
+        break;
     case CID_CHK_BPM:
         if (m_cfg) { m_cfg->showBPM = (SendMessageW(m_chkBPM, BM_GETCHECK, 0, 0) == BST_CHECKED); OnSave(); }
         break;
@@ -475,6 +496,14 @@ void SettingsUI::OnCommand(WPARAM wp, LPARAM lp) {
             OnSave();
         }
         break;
+    case CID_CHK_TOP_MOST:
+        if (m_cfg) {
+            m_cfg->alwaysOnTop = (SendMessageW(m_chkTopMost, BM_GETCHECK, 0, 0) == BST_CHECKED);
+            if (m_display) m_display->SetTopMost(m_cfg->alwaysOnTop);
+            if (m_chart)   m_chart->SetTopMost(m_cfg->alwaysOnTop);
+            OnSave();
+        }
+        break;
     case CID_LIST_KEYS:
         if (code == LBN_SELCHANGE) {
             m_selectedKey = (int)SendMessageW(m_listKeys, LB_GETCURSEL, 0, 0);
@@ -488,6 +517,22 @@ void SettingsUI::OnCommand(WPARAM wp, LPARAM lp) {
     case CID_BTN_RESET_TOTAL: OnResetTotals(); break;
     case CID_BTN_RESET: OnResetDefaults(); break;
     case CID_BTN_THEMEEDIT: if (m_themeEditor) m_themeEditor->Show(true); break;
+    case CID_BTN_FONT: {
+        if (!m_cfg) break;
+        LOGFONTW lf = {};
+        lf.lfHeight = -16;
+        wcscpy_s(lf.lfFaceName, LF_FACESIZE, m_cfg->keyFontName.c_str());
+        CHOOSEFONTW cf = {sizeof(cf)};
+        cf.hwndOwner = m_hwnd;
+        cf.lpLogFont = &lf;
+        cf.Flags = CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT | CF_NOVECTORFONTS;
+        if (ChooseFontW(&cf)) {
+            m_cfg->keyFontName = lf.lfFaceName;
+            OnSave();
+            RebuildWindow();
+        }
+        break;
+    }
     case CID_RADIO_FPS25:
         if (m_cfg && SendMessageW(m_radioFps25, BM_GETCHECK, 0, 0) == BST_CHECKED)
             { m_cfg->fps = 25; OnSave(); } break;
@@ -514,6 +559,9 @@ void SettingsUI::OnCommand(WPARAM wp, LPARAM lp) {
             if (m_chart) m_chart->Show(m_cfg->showChart);
             OnSave();
         }
+        break;
+    case CID_CHK_CHART_GRID:
+        if (m_cfg) { m_cfg->chartShowGrid = (SendMessageW(m_chkChartGrid, BM_GETCHECK, 0, 0) == BST_CHECKED); OnSave(); }
         break;
     case CID_SW_CHARTBG:  case CID_SW_CHARTLINE:  OnPickChartColor(cid); break;
     case CID_CHK_CHART_SNAP:
@@ -1194,6 +1242,7 @@ void SettingsUI::RefreshControls() {
     SendMessageW(m_chkKPS,     BM_SETCHECK, m_cfg->showKPS      ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(m_chkSummary, BM_SETCHECK, m_cfg->showSummary  ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(m_chkHistory, BM_SETCHECK, m_cfg->showHistory  ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_chkTrackLines, BM_SETCHECK, m_cfg->historyShowLines ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(m_chkBPM,     BM_SETCHECK, m_cfg->showBPM      ? BST_CHECKED : BST_UNCHECKED, 0);
     int nd = m_cfg->bpmNoteDiv;
     SendMessageW(m_radioNote8,  BM_SETCHECK, (nd == 8)  ? BST_CHECKED : BST_UNCHECKED, 0);
@@ -1205,6 +1254,7 @@ void SettingsUI::RefreshControls() {
     SendMessageW(m_radioLangEN, BM_SETCHECK, (l == 1) ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(m_radioLangJP, BM_SETCHECK, (l == 2) ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(m_chkThrough, BM_SETCHECK, m_cfg->clickThrough ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_chkTopMost, BM_SETCHECK, m_cfg->alwaysOnTop ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(m_trackKeySize, TBM_SETPOS, TRUE, m_cfg->keySize);
     SendMessageW(m_trackSpacing, TBM_SETPOS, TRUE, m_cfg->keySpacing);
     SendMessageW(m_trackHistoryH, TBM_SETPOS, TRUE, m_cfg->historyTrackH);
@@ -1226,6 +1276,11 @@ void SettingsUI::RefreshControls() {
         SetWindowTextW(((HWND*)&m_radioTheme0)[i], name);
     }
     SyncKeySizeEdit();
+    // 更新字体名称显示
+    if (m_btnFont) {
+        HWND hLabel = GetWindow(m_btnFont, GW_HWNDNEXT);
+        if (hLabel) { wchar_t fb[64]; swprintf(fb, 64, L"%ls", m_cfg->keyFontName.c_str()); SetWindowTextW(hLabel, fb); }
+    }
     SyncSpacingEdit();
     SyncHistoryHEdit();
     SyncGrowSpdEdit();
@@ -1244,6 +1299,7 @@ void SettingsUI::RefreshControls() {
 
     // Chart controls
     SendMessageW(m_chkChart, BM_SETCHECK, m_cfg->showChart ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_chkChartGrid, BM_SETCHECK, m_cfg->chartShowGrid ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(m_trackChartTime, TBM_SETPOS, TRUE, m_cfg->chartTimeRange / 1000);
     wchar_t ctb[16]; swprintf(ctb,16,L"%d",m_cfg->chartTimeRange/1000); SetWindowTextW(m_editChartTime,ctb);
     SendMessageW(m_trackChartRadius, TBM_SETPOS, TRUE, m_cfg->chartRadius);

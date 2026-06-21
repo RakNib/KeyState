@@ -18,6 +18,7 @@ public:
     void UpdateChart(const AppConfig& cfg, const KeyStateManager& ksm);
     HWND GetHwnd() const { return m_hwnd; }
 
+    void SetTopMost(bool enable);
     void SetNotifyHwnd(HWND h) { m_notifyHwnd = h; }
     void SetConfig(AppConfig* cfg) { m_cfg = cfg; }
     void SetConfigPath(const wchar_t* path) { m_configPath = path; }
@@ -54,4 +55,5 @@ private:
     // 渲染折线图到 GDI+ Bitmap
     bool RenderChart(const AppConfig& cfg, const KeyStateManager& ksm,
                      HBITMAP& outBmp, HDC& outMemDC, int w, int h);
+    uint64_t m_lastTopMostCheck = 0;  // 上次重新置顶时间（防全屏遮挡）
 };

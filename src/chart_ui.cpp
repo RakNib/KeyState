@@ -155,19 +155,21 @@ bool ChartUI::RenderChart(const AppConfig& cfg, const KeyStateManager& ksm,
     MakeRoundRect(clipPath, 0, 0, w - 1, h - 1, chartR > 0 ? chartR : 0);
     g.SetClip(&clipPath);
 
-    // === 网格线（位置固定，不随数据变化） ===
-    Gdiplus::Color gridColor(28, 120, 120, 120);
-    Gdiplus::Pen gridPen(gridColor, 0.5f);
-    // 水平线 (Y)
-    for (int i = 0; i <= 4; ++i) {
-        int gy = mgT + plotH - (plotH * i / 4);
-        g.DrawLine(&gridPen, mgL, gy, mgL + plotW, gy);
-    }
-    // 垂直线 (X) — 5 条，代表时间分隔，位置固定
-    int nXLines = 5;
-    for (int i = 0; i <= nXLines; ++i) {
-        int gx = mgL + (plotW * i / nXLines);
-        g.DrawLine(&gridPen, gx, mgT, gx, mgT + plotH);
+    // === 网格线（可开关，位置固定，不随数据变化） ===
+    int nXLines = 5;  // 垂直线条数，网格和 X 轴标签共用
+    if (cfg.chartShowGrid) {
+        Gdiplus::Color gridColor(28, 120, 120, 120);
+        Gdiplus::Pen gridPen(gridColor, 0.5f);
+        // 水平线 (Y)
+        for (int i = 0; i <= 4; ++i) {
+            int gy = mgT + plotH - (plotH * i / 4);
+            g.DrawLine(&gridPen, mgL, gy, mgL + plotW, gy);
+        }
+        // 垂直线 (X)
+        for (int i = 0; i <= nXLines; ++i) {
+            int gx = mgL + (plotW * i / nXLines);
+            g.DrawLine(&gridPen, gx, mgT, gx, mgT + plotH);
+        }
     }
 
     // === Y 轴标签（固定） ===
@@ -344,9 +346,25 @@ void ChartUI::UpdateChart(const AppConfig& cfg, const KeyStateManager& ksm) {
 
     ReleaseDC(nullptr, hdcScreen);
 
+    // 每 500ms 重新置顶一次，对抗全屏应用遮挡
+    if (cfg.alwaysOnTop) {
+        uint64_t now = GetTickCount64();
+        if (now - m_lastTopMostCheck > 500) {
+            m_lastTopMostCheck = now;
+            SetWindowPos(m_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        }
+    }
+
     CleanupLastFrame();
     m_lastBmp   = hBmp;
     m_lastMemDC = hMemDC;
+}
+
+void ChartUI::SetTopMost(bool enable) {
+    if (!m_hwnd) return;
+    SetWindowPos(m_hwnd, enable ? HWND_TOPMOST : HWND_NOTOPMOST,
+                 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
 // ========== 窗口过程 ==========
