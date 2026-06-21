@@ -78,6 +78,9 @@ struct AppConfig {
     RgbaColor chartBgCol   = {18, 18, 22, 255};
     RgbaColor chartLineCol = {100, 255, 130, 255};
     int     chartRadius    = 8;       // 圆角半径
+    bool    chartSnap      = false;   // 吸附到按键映射框下方
+    int     chartSnapOffsetX = 12;    // 吸附 X 偏移 (px)
+    int     chartSnapOffsetY = 16;    // 吸附 Y 偏移 (px)
     std::vector<KeyConfig> keys;
 
     // 加载 / 保存 JSON 配置

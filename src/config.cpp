@@ -182,6 +182,9 @@ bool AppConfig::Load(const wchar_t* filepath) {
     rdBoxCol(L"chartBgCol",   chartBgCol);
     rdBoxCol(L"chartLineCol", chartLineCol);
     if (auto* v = root.Find(L"chartRadius"))    chartRadius = (int)v->num;
+    if (auto* v = root.Find(L"chartSnap"))      chartSnap   = v->bl;
+    if (auto* v = root.Find(L"chartSnapOffsetX")) chartSnapOffsetX = (int)v->num;
+    if (auto* v = root.Find(L"chartSnapOffsetY")) chartSnapOffsetY = (int)v->num;
 
     // 解析 keys 数组
     if (auto* jkeys = root.Find(L"keys")) {
@@ -285,6 +288,9 @@ bool AppConfig::Save(const wchar_t* filepath) const {
     wChartCol(L"chartBgCol",   chartBgCol);
     wChartCol(L"chartLineCol", chartLineCol);
     wInt(L"chartRadius", chartRadius);
+    wBool(L"chartSnap", chartSnap);
+    wInt(L"chartSnapOffsetX", chartSnapOffsetX);
+    wInt(L"chartSnapOffsetY", chartSnapOffsetY);
 
     // keys 数组
     WriteIndent(out, 1); out += L"\"keys\": [\n";

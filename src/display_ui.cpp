@@ -64,9 +64,14 @@ void DisplayUI::UpdateOverlay(const AppConfig& cfg, const KeyStateManager& ksm) 
     blend.SourceConstantAlpha = (BYTE)(cfg.overlayOpacity * 255);
     blend.AlphaFormat         = AC_SRC_ALPHA;
 
+    // 计算轨道偏移：开启轨道时窗口上移，保持按键映射位置不变
+    int trackOffsetY = 0;
+    if (cfg.showHistory && !cfg.keys.empty()) {
+        trackOffsetY = cfg.historyTrackH + cfg.historyTrackGap;
+    }
     SIZE   sz    = {w, h};
     POINT  ptSrc = {0, 0};
-    POINT  ptDst = {cfg.displayX, cfg.displayY};
+    POINT  ptDst = {cfg.displayX, cfg.displayY - trackOffsetY};
 
     UpdateLayeredWindow(m_hwnd, hdcScreen, &ptDst, &sz,
                         hMemDC, &ptSrc, 0, &blend, ULW_ALPHA);

@@ -111,6 +111,9 @@ private:
     HWND m_trackChartMB, m_editChartMB;
     HWND m_swChartBg, m_swChartLine, m_lblChartBg, m_lblChartLine;
     HWND m_trackChartRadius, m_editChartRadius;
+    HWND m_chkChartSnap;
+    HWND m_trackChartSnapX, m_editChartSnapX;
+    HWND m_trackChartSnapY, m_editChartSnapY;
 
     HFONT m_hFont      = nullptr;
     int   m_scrollY    = 0;       // 滚动偏移

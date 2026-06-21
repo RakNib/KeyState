@@ -330,6 +330,13 @@ void ChartUI::UpdateChart(const AppConfig& cfg, const KeyStateManager& ksm) {
     POINT ptSrc = {0, 0};
     int cx = cfg.chartX;
     int cy = cfg.chartY;
+    // 吸附模式：图表位置跟随按键映射框下方（可调 X/Y 偏移）
+    if (cfg.chartSnap) {
+        // 按键映射框始终保持在 displayY + gap 位置，视觉底部结束于 displayY + keySize + gap
+        int displayBottom = cfg.displayY + cfg.keySize + cfg.keySpacing;
+        cx = cfg.displayX + cfg.chartSnapOffsetX;
+        cy = displayBottom + cfg.chartSnapOffsetY;
+    }
     POINT ptDst = {cx, cy};
 
     UpdateLayeredWindow(m_hwnd, hdcScreen, &ptDst, &sz,

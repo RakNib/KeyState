@@ -105,6 +105,11 @@ enum {
     CID_RADIO_THEME14   = 204,
     CID_RADIO_THEME15   = 205,
     CID_BTN_THEMEEDIT   = 206,
+    CID_CHK_CHART_SNAP  = 207,
+    CID_TRACK_CHART_SNAPX = 208,
+    CID_EDIT_CHART_SNAPX  = 209,
+    CID_TRACK_CHART_SNAPY = 210,
+    CID_EDIT_CHART_SNAPY  = 211,
 };
 
 // 色块控件
@@ -252,30 +257,33 @@ void SettingsUI::OnCreate(HWND hwnd) {
 
     // 2. Basic Settings
     lbl(LANG(1), CX, y, 150, 20); y += 26;
-    m_chkTotal = ctl(L"BUTTON", LANG(2), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 140, 24, CID_CHK_TOTAL);
-    m_chkKPS = ctl(L"BUTTON", LANG(3), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 150, y, 120, 24, CID_CHK_KPS);
-    m_chkSummary = ctl(L"BUTTON", LANG(4), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 280, y, 150, 24, CID_CHK_SUMMARY);
+    // Row 1: 显示选项
+    m_chkTotal = ctl(L"BUTTON", LANG(2), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 130, 24, CID_CHK_TOTAL);
+    m_chkKPS = ctl(L"BUTTON", LANG(3), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 135, y, 120, 24, CID_CHK_KPS);
+    m_chkBPM = ctl(L"BUTTON", LANG(6), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 260, y, 120, 24, CID_CHK_BPM);
     y += 28;
-    m_chkBPM = ctl(L"BUTTON", LANG(6), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 170, y, 130, 24, CID_CHK_BPM);
+    // Row 2: 汇总 + 穿透
+    m_chkSummary = ctl(L"BUTTON", LANG(4), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 140, 24, CID_CHK_SUMMARY);
+    m_chkThrough = ctl(L"BUTTON", LANG(7), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 150, y, 160, 24, CID_CHK_THROUGH);
     y += 28;
-    m_radioNote8 = ctl(L"BUTTON", LANG(37), BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, CX, y, 50, 24, CID_RADIO_NOTE8);
-    m_radioNote16 = ctl(L"BUTTON", LANG(38), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 55, y, 55, 24, CID_RADIO_NOTE16);
-    m_radioNote32 = ctl(L"BUTTON", LANG(39), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 115, y, 55, 24, CID_RADIO_NOTE32);
-    m_radioNote64 = ctl(L"BUTTON", LANG(40), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 175, y, 55, 24, CID_RADIO_NOTE64);
+    // Row 3: BPM 分音基准
+    lbl(L"BPM:", CX, y, 45, 24);
+    m_radioNote8 = ctl(L"BUTTON", LANG(37), BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, CX + 48, y, 50, 24, CID_RADIO_NOTE8);
+    m_radioNote16 = ctl(L"BUTTON", LANG(38), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 103, y, 55, 24, CID_RADIO_NOTE16);
+    m_radioNote32 = ctl(L"BUTTON", LANG(39), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 163, y, 55, 24, CID_RADIO_NOTE32);
+    m_radioNote64 = ctl(L"BUTTON", LANG(40), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 223, y, 55, 24, CID_RADIO_NOTE64);
     y += 30;
-    m_chkThrough = ctl(L"BUTTON", LANG(7), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 160, 24, CID_CHK_THROUGH);
-    y += 36;
     if (m_cfg) {
         SendMessageW(m_chkTotal, BM_SETCHECK, m_cfg->showTotal ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(m_chkKPS, BM_SETCHECK, m_cfg->showKPS ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_chkSummary, BM_SETCHECK, m_cfg->showSummary ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(m_chkBPM, BM_SETCHECK, m_cfg->showBPM ? BST_CHECKED : BST_UNCHECKED, 0);
+        SendMessageW(m_chkSummary, BM_SETCHECK, m_cfg->showSummary ? BST_CHECKED : BST_UNCHECKED, 0);
+        SendMessageW(m_chkThrough, BM_SETCHECK, m_cfg->clickThrough ? BST_CHECKED : BST_UNCHECKED, 0);
         int nd = m_cfg->bpmNoteDiv;
         SendMessageW(m_radioNote8, BM_SETCHECK, (nd == 8) ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(m_radioNote16, BM_SETCHECK, (nd != 8 && nd != 32 && nd != 64) ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(m_radioNote32, BM_SETCHECK, (nd == 32) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioNote64, BM_SETCHECK, (nd == 64) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_chkThrough, BM_SETCHECK, m_cfg->clickThrough ? BST_CHECKED : BST_UNCHECKED, 0); }
+        SendMessageW(m_radioNote64, BM_SETCHECK, (nd == 64) ? BST_CHECKED : BST_UNCHECKED, 0); }
 
     // 3. Theme
     div(y);
@@ -370,12 +378,28 @@ void SettingsUI::OnCreate(HWND hwnd) {
         auto d2 = new SwatchData{&m_cfg->chartLineCol}; SetWindowLongPtrW(m_swChartLine, GWLP_USERDATA, (LONG_PTR)d2); InvalidateRect(m_swChartLine, nullptr, TRUE);
         swprintf(cb, 64, L"RGB(%d,%d,%d)", m_cfg->chartLineCol.r, m_cfg->chartLineCol.g, m_cfg->chartLineCol.b); SetWindowTextW(m_lblChartLine, cb); }
     mks(CX, y, LANG(64), CID_TRACK_CHARTW, CID_EDIT_CHARTW, m_trackChartW, m_editChartW, 200, 800, m_cfg->chartW, 10);
+    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartW); SetWindowTextW(m_editChartW, tb); }
     mks(CX, y, LANG(65), CID_TRACK_CHARTH, CID_EDIT_CHARTH, m_trackChartH, m_editChartH, 100, 600, m_cfg->chartH, 10);
+    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartH); SetWindowTextW(m_editChartH, tb); }
     mks(CX, y, LANG(66), CID_TRACK_CHARTML, CID_EDIT_CHARTML, m_trackChartML, m_editChartML, 0, 60, m_cfg->chartMarginL, 1);
+    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartMarginL); SetWindowTextW(m_editChartML, tb); }
     mks(CX, y, LANG(67), CID_TRACK_CHARTMR, CID_EDIT_CHARTMR, m_trackChartMR, m_editChartMR, 0, 60, m_cfg->chartMarginR, 1);
+    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartMarginR); SetWindowTextW(m_editChartMR, tb); }
     mks(CX, y, LANG(68), CID_TRACK_CHARTMT, CID_EDIT_CHARTMT, m_trackChartMT, m_editChartMT, 0, 60, m_cfg->chartMarginT, 1);
+    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartMarginT); SetWindowTextW(m_editChartMT, tb); }
     mks(CX, y, LANG(69), CID_TRACK_CHARTMB, CID_EDIT_CHARTMB, m_trackChartMB, m_editChartMB, 0, 60, m_cfg->chartMarginB, 1);
+    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartMarginB); SetWindowTextW(m_editChartMB, tb); }
     mks(CX, y, LANG(63), CID_TRACK_CHARTRADIUS, CID_EDIT_CHARTRADIUS, m_trackChartRadius, m_editChartRadius, 0, 20, m_cfg->chartRadius, 1);
+    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartRadius); SetWindowTextW(m_editChartRadius, tb); }
+
+    // 7.5 吸附
+    div(y);
+    m_chkChartSnap = ctl(L"BUTTON", L"吸附到按键映射下方", BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 180, 24, CID_CHK_CHART_SNAP);
+    if (m_cfg) SendMessageW(m_chkChartSnap, BM_SETCHECK, m_cfg->chartSnap ? BST_CHECKED : BST_UNCHECKED, 0); y += 28;
+    mks(CX, y, L"X 偏移 (px)", CID_TRACK_CHART_SNAPX, CID_EDIT_CHART_SNAPX, m_trackChartSnapX, m_editChartSnapX, -200, 200, m_cfg->chartSnapOffsetX, 50);
+    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartSnapOffsetX); SetWindowTextW(m_editChartSnapX, tb); }
+    mks(CX, y, L"Y 偏移 (px)", CID_TRACK_CHART_SNAPY, CID_EDIT_CHART_SNAPY, m_trackChartSnapY, m_editChartSnapY, -200, 200, m_cfg->chartSnapOffsetY, 50);
+    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartSnapOffsetY); SetWindowTextW(m_editChartSnapY, tb); }
 
     // 8. Save / Reset
     div(y);
@@ -492,6 +516,12 @@ void SettingsUI::OnCommand(WPARAM wp, LPARAM lp) {
         }
         break;
     case CID_SW_CHARTBG:  case CID_SW_CHARTLINE:  OnPickChartColor(cid); break;
+    case CID_CHK_CHART_SNAP:
+        if (m_cfg) {
+            m_cfg->chartSnap = (SendMessageW(m_chkChartSnap, BM_GETCHECK, 0, 0) == BST_CHECKED);
+            OnSave();
+        }
+        break;
     }
 }
 
@@ -567,6 +597,14 @@ void SettingsUI::OnHScroll(WPARAM wp, LPARAM lp) {
     } else if (hwndTrack == m_trackChartMB && m_cfg) {
         m_cfg->chartMarginB = (int)SendMessageW(m_trackChartMB, TBM_GETPOS, 0, 0);
         wchar_t b[16]; swprintf(b,16,L"%d",m_cfg->chartMarginB); SetWindowTextW(m_editChartMB,b); OnSave();
+    } else if (hwndTrack == m_trackChartSnapX && m_cfg) {
+        m_cfg->chartSnapOffsetX = (int)SendMessageW(m_trackChartSnapX, TBM_GETPOS, 0, 0);
+        wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->chartSnapOffsetX); SetWindowTextW(m_editChartSnapX,tb);
+        OnSave();
+    } else if (hwndTrack == m_trackChartSnapY && m_cfg) {
+        m_cfg->chartSnapOffsetY = (int)SendMessageW(m_trackChartSnapY, TBM_GETPOS, 0, 0);
+        wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->chartSnapOffsetY); SetWindowTextW(m_editChartSnapY,tb);
+        OnSave();
     }
 }
 
@@ -995,11 +1033,14 @@ void SettingsUI::OnResetTotals() {
 void SettingsUI::OnResetDefaults() {
     if (!m_cfg) return;
     if (MessageBoxW(m_hwnd, LANG(56), LANG(57), MB_YESNO|MB_ICONWARNING) != IDYES) return;
+    bool chartWasVisible = m_cfg->showChart;
     *m_cfg = AppConfig{};
     m_cfg->keys.push_back({32, L"Space", {235,235,245,255}, {48,48,48,200}, {255,95,95,255}});
     m_cfg->keys.push_back({65, L"A",     {235,235,245,255}, {48,48,48,200}, {95,255,95,255}});
     m_cfg->keys.push_back({83, L"S",     {235,235,245,255}, {48,48,48,200}, {95,130,255,255}});
     m_cfg->keys.push_back({68, L"D",     {235,235,245,255}, {48,48,48,200}, {255,210,60,255}});
+    // 同步关闭图表窗口，保持状态一致
+    if (m_chart && chartWasVisible) m_chart->Show(false);
     m_cfg->Save(m_configPath.empty()?L"KeyStateSetting.json":m_configPath.c_str());
     RebuildWindow();
 }
@@ -1085,6 +1126,13 @@ void SettingsUI::OnSave() {
     syncMargEdit(m_editChartMR, m_trackChartMR, m_cfg->chartMarginR, 0, 60);
     syncMargEdit(m_editChartMT, m_trackChartMT, m_cfg->chartMarginT, 0, 60);
     syncMargEdit(m_editChartMB, m_trackChartMB, m_cfg->chartMarginB, 0, 60);
+
+    GetWindowTextW(m_editChartSnapX, buf, 16);
+    int sx = _wtoi(buf);
+    if (sx >= -200 && sx <= 200) { m_cfg->chartSnapOffsetX = sx; SendMessageW(m_trackChartSnapX, TBM_SETPOS, TRUE, sx); }
+    GetWindowTextW(m_editChartSnapY, buf, 16);
+    int sy = _wtoi(buf);
+    if (sy >= -200 && sy <= 200) { m_cfg->chartSnapOffsetY = sy; SendMessageW(m_trackChartSnapY, TBM_SETPOS, TRUE, sy); }
 
     const wchar_t* savePath = m_configPath.empty() ? L"KeyStateSetting.json" : m_configPath.c_str();
     m_cfg->Save(savePath);
@@ -1212,6 +1260,13 @@ void SettingsUI::RefreshControls() {
     synMarg(m_trackChartMR, m_editChartMR, m_cfg->chartMarginR);
     synMarg(m_trackChartMT, m_editChartMT, m_cfg->chartMarginT);
     synMarg(m_trackChartMB, m_editChartMB, m_cfg->chartMarginB);
+
+    // Snap controls
+    SendMessageW(m_chkChartSnap, BM_SETCHECK, m_cfg->chartSnap ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_trackChartSnapX, TBM_SETPOS, TRUE, m_cfg->chartSnapOffsetX);
+    { wchar_t xb[16]; swprintf(xb,16,L"%d",m_cfg->chartSnapOffsetX); SetWindowTextW(m_editChartSnapX,xb); }
+    SendMessageW(m_trackChartSnapY, TBM_SETPOS, TRUE, m_cfg->chartSnapOffsetY);
+    { wchar_t yb[16]; swprintf(yb,16,L"%d",m_cfg->chartSnapOffsetY); SetWindowTextW(m_editChartSnapY,yb); }
 
     RefreshKeyList();
 }
