@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include <cstring>
 #include <algorithm>
+#include <climits>
 
 Renderer::Renderer() {
     Gdiplus::GdiplusStartupInput si;
@@ -77,9 +78,19 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
     int  trackGap    = hasHistory ? cfg.historyTrackGap : 0;
     // 额外框：Total(showSummary) + KPS(showKPS) + BPM(showBPM)
     int  extraBoxes  = (cfg.showSummary?1:0) + (cfg.showKPS&&nKeys>0?1:0) + (cfg.showBPM&&nKeys>0?1:0);
-    int  nBoxes      = nKeys + extraBoxes;
-    outW = nBoxes * ks + (nBoxes - 1) * gap + gap * 2;
-    outH = ks + gap * 2 + trackH + trackGap;
+
+    // === 自由模式 vs 常规模式尺寸计算 ===
+    if (cfg.freeMode) {
+        const int fm = 10;
+        int faw = cfg.freeAreaW > ks ? cfg.freeAreaW : ks + 80;
+        int fah = cfg.freeAreaH > ks ? cfg.freeAreaH : ks + 80;
+        outW = faw + fm * 2;
+        outH = fah + fm * 2;
+    } else {
+        int  nBoxes      = nKeys + extraBoxes;
+        outW = nBoxes * ks + (nBoxes - 1) * gap + gap * 2;
+        outH = ks + gap * 2 + trackH + trackGap;
+    }
 
     Gdiplus::Bitmap bmp(outW, outH, PixelFormat32bppARGB);
     Gdiplus::Graphics g(&bmp);
@@ -135,7 +146,7 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
     int keyY = trackH + gap + trackGap; // 按键框 Y 偏移（轨道 + 间距）
 
     // 先绘制轨道（在按键背景层之下）
-    if (hasHistory) {
+    if (hasHistory && !cfg.freeMode) {
         for (int i = 0; i < nKeys; ++i) {
             int tx = gap + i * (ks + gap);
             DrawHistoryTrack(g, cfg, cfg.keys[i].keyCode, ksm, tx, gap, ks, trackH,
@@ -143,37 +154,106 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
         }
     }
 
-    for (int i = 0; i < nKeys; ++i) {
-        int x = gap + i * (ks + gap);
-        DrawKeyBox(g, cfg.keys[i], ksm, x, keyY, ks, cfg.keyRadius, cfg.keyBorderW,
-                   cfg.showTotal, cfg.showKPS, cfg.keyFontSize);
-    }
+    // === 自由模式渲染 ===
+    if (cfg.freeMode) {
+        int areaW = cfg.freeAreaW > ks ? cfg.freeAreaW : ks + 80;
+        int areaH = cfg.freeAreaH > ks ? cfg.freeAreaH : ks + 80;
+        const int margin = 10;
 
-    // 追加数据框（Total / KPS / BPM，均独立同款设计）
-    int extraIdx = 0;
-    wchar_t buf[32];
+        // 绘制区域边界（可选）
+        if (cfg.freeShowBoundary) {
+            Gdiplus::Pen boundPen(Gdiplus::Color(120, 255, 100, 100), 1.0f);
+            Gdiplus::SolidBrush boundFill(Gdiplus::Color(12, 255, 80, 80));
+            g.DrawRectangle(&boundPen, margin, margin, areaW, areaH);
+            g.FillRectangle(&boundFill, margin, margin, areaW, areaH);
+            Gdiplus::SolidBrush labelBrush(Gdiplus::Color(160, 255, 140, 140));
+            Gdiplus::Font markerFont(L"Segoe UI", 8, Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
+            wchar_t bl[64];
+            swprintf(bl, 64, L"Area (%d x %d)", areaW, areaH);
+            g.DrawString(bl, -1, &markerFont,
+                Gdiplus::RectF((float)(margin + 4), (float)(margin + 2), 160.0f, 12.0f),
+                nullptr, &labelBrush);
+        }
 
-    if (cfg.showSummary && nKeys > 0) {
-        int sx = gap + (nKeys + extraIdx) * (ks + gap);
-        swprintf(buf, 32, L"%llu", sumTotal);
-        DrawDataBox(g, sx, keyY, ks, cfg.keyRadius, cfg.totalBoxBg, cfg.totalBoxFc, buf, L"Total");
-        extraIdx++;
-    }
+        // 限制每个元素在区域内绘制
+        auto clampVal = [&](int v) -> int {
+            if (v < 0) return 0;
+            if (v + ks > areaW) return areaW - ks;
+            return v;
+        };
+        auto clampValH = [&](int v) -> int {
+            if (v < 0) return 0;
+            if (v + ks > areaH) return areaH - ks;
+            return v;
+        };
 
-    if (cfg.showKPS && nKeys > 0) {
-        int sx = gap + (nKeys + extraIdx) * (ks + gap);
-        swprintf(buf, 32, L"%.1f", sumKPS);
-        DrawDataBox(g, sx, keyY, ks, cfg.keyRadius, cfg.kpsBoxBg, cfg.kpsBoxFc, buf, L"KPS/s");
-        extraIdx++;
-    }
+        for (int i = 0; i < nKeys; ++i) {
+            int cx = clampVal(cfg.keys[i].freeX);
+            int cy = clampValH(cfg.keys[i].freeY);
+            DrawKeyBox(g, cfg.keys[i], ksm,
+                       cx + margin, cy + margin,
+                       ks, cfg.keyRadius, cfg.keyBorderW,
+                       cfg.showTotal, cfg.showKPS, cfg.keyFontSize);
+        }
+        wchar_t buf[32];
 
-    if (cfg.showBPM && nKeys > 0) {
-        int sx = gap + (nKeys + extraIdx) * (ks + gap);
-        swprintf(buf, 32, L"%d", (int)(bpmKPS * 240.0 / cfg.bpmNoteDiv));
-        wchar_t sub[32];
-        swprintf(sub, 32, L"BPM | %d", cfg.bpmNoteDiv);
-        DrawDataBox(g, sx, keyY, ks, cfg.keyRadius, cfg.bpmBoxBg, cfg.bpmBoxFc, buf, sub);
-        extraIdx++;
+        if (cfg.showSummary && nKeys > 0) {
+            int cx = clampVal(cfg.freeTotalX);
+            int cy = clampValH(cfg.freeTotalY);
+            swprintf(buf, 32, L"%llu", sumTotal);
+            DrawDataBox(g, cx + margin, cy + margin, ks, cfg.keyRadius,
+                        cfg.totalBoxBg, cfg.totalBoxFc, buf, L"Total");
+        }
+        if (cfg.showKPS && nKeys > 0) {
+            int cx = clampVal(cfg.freeKPSX);
+            int cy = clampValH(cfg.freeKPSY);
+            swprintf(buf, 32, L"%d", (int)sumKPS);
+            DrawDataBox(g, cx + margin, cy + margin, ks, cfg.keyRadius,
+                        cfg.kpsBoxBg, cfg.kpsBoxFc, buf, L"KPS/s");
+        }
+        if (cfg.showBPM && nKeys > 0) {
+            int cx = clampVal(cfg.freeBPMX);
+            int cy = clampValH(cfg.freeBPMY);
+            swprintf(buf, 32, L"%d", (int)(bpmKPS * 240.0 / cfg.bpmNoteDiv));
+            wchar_t sub[32];
+            swprintf(sub, 32, L"BPM | %d", cfg.bpmNoteDiv);
+            DrawDataBox(g, cx + margin, cy + margin, ks, cfg.keyRadius,
+                        cfg.bpmBoxBg, cfg.bpmBoxFc, buf, sub);
+        }
+    } else {
+        // === 常规模式渲染 ===
+        for (int i = 0; i < nKeys; ++i) {
+            int x = gap + i * (ks + gap);
+            DrawKeyBox(g, cfg.keys[i], ksm, x, keyY, ks, cfg.keyRadius, cfg.keyBorderW,
+                       cfg.showTotal, cfg.showKPS, cfg.keyFontSize);
+        }
+
+        // 追加数据框
+        int extraIdx = 0;
+        wchar_t buf[32];
+
+        if (cfg.showSummary && nKeys > 0) {
+            int sx = gap + (nKeys + extraIdx) * (ks + gap);
+            swprintf(buf, 32, L"%llu", sumTotal);
+            DrawDataBox(g, sx, keyY, ks, cfg.keyRadius, cfg.totalBoxBg, cfg.totalBoxFc, buf, L"Total");
+            extraIdx++;
+        }
+
+        if (cfg.showKPS && nKeys > 0) {
+            int sx = gap + (nKeys + extraIdx) * (ks + gap);
+            swprintf(buf, 32, L"%d", (int)sumKPS);
+            DrawDataBox(g, sx, keyY, ks, cfg.keyRadius, cfg.kpsBoxBg, cfg.kpsBoxFc, buf, L"KPS/s");
+            extraIdx++;
+        }
+
+        if (cfg.showBPM && nKeys > 0) {
+            int sx = gap + (nKeys + extraIdx) * (ks + gap);
+            swprintf(buf, 32, L"%d", (int)(bpmKPS * 240.0 / cfg.bpmNoteDiv));
+            wchar_t sub[32];
+            swprintf(sub, 32, L"BPM | %d", cfg.bpmNoteDiv);
+            DrawDataBox(g, sx, keyY, ks, cfg.keyRadius, cfg.bpmBoxBg, cfg.bpmBoxFc, buf, sub);
+            extraIdx++;
+        }
     }
 
     Gdiplus::BitmapData bd;
@@ -309,7 +389,7 @@ void Renderer::DrawKeyBox(Gdiplus::Graphics& g, const KeyConfig& kc,
         if (showKPS) {
             if (!stats.empty()) stats += L" | ";
             wchar_t buf[32];
-            swprintf(buf, 32, L"%.1f/s", ksm.GetKPS(kc.keyCode));
+            swprintf(buf, 32, L"%d/s", (int)ksm.GetKPS(kc.keyCode));
             stats += buf;
         }
         Gdiplus::RectF statRect((float)bx, (float)(by + labelH),

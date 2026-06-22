@@ -37,6 +37,9 @@ private:
     bool  m_dragging   = false;
     POINT m_dragOffset = {0, 0};
 
+    // 自由模式拖拽
+    int   m_freeDragIdx  = -1;  // 自由模式下拖拽的按键索引 (-1=窗口, -2=Total, -3=KPS, -4=BPM)
+
     void CleanupLastFrame();
     HBITMAP m_lastBmp   = nullptr;
     HDC     m_lastMemDC = nullptr;

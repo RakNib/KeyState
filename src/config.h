@@ -26,6 +26,9 @@ struct KeyConfig {
     RgbaColor colorNormal   = {48,  48,  48,  200};
     RgbaColor colorPress    = {255, 95,  95,  255};
     uint64_t totalPresses    = 0;
+    // 自由模式位置
+    int     freeX          = 0;
+    int     freeY          = 0;
 };
 
 // 应用全局配置
@@ -47,12 +50,12 @@ struct AppConfig {
     int     historyTrackAlpha= 18;     // 轨道背景透明度 (0-100)
     int     historyBlockAlpha=255;     // 方块透明度 (0-255)
     bool    historyShowLines = true;   // 显示轨道边界线
-    RgbaColor totalBoxBg = {60,65,80,210};
-    RgbaColor totalBoxFc = {220,225,240,255};
-    RgbaColor kpsBoxBg   = {65,60,80,210};
-    RgbaColor kpsBoxFc   = {220,220,250,255};
-    RgbaColor bpmBoxBg   = {50,70,60,210};
-    RgbaColor bpmBoxFc   = {180,240,200,255};
+    RgbaColor totalBoxBg = {255,255,255,210};
+    RgbaColor totalBoxFc = {0,0,0,255};
+    RgbaColor kpsBoxBg   = {255,255,255,210};
+    RgbaColor kpsBoxFc   = {0,0,0,255};
+    RgbaColor bpmBoxBg   = {255,255,255,210};
+    RgbaColor bpmBoxFc   = {0,0,0,255};
     int     fps             = 90;      // 渲染帧率 (25/45/60/90/120)
     bool    clickThrough   = false;
     bool    alwaysOnTop    = true;
@@ -78,6 +81,8 @@ struct AppConfig {
     int     chartMarginB   = 12;
     bool    showChart      = false;
     int     chartTimeRange = 10000;   // X 轴时间范围 (ms)
+    int     chartType      = 0;       // 0=折线图, 1=散点图, 2=柱状图
+    bool    chartGradientFill = false; // 颜色渐变填充
     RgbaColor chartBgCol   = {18, 18, 22, 255};
     RgbaColor chartLineCol = {100, 255, 130, 255};
     int     chartRadius    = 8;       // 圆角半径
@@ -85,6 +90,20 @@ struct AppConfig {
     bool    chartSnap      = false;   // 吸附到按键映射框下方
     int     chartSnapOffsetX = 12;    // 吸附 X 偏移 (px)
     int     chartSnapOffsetY = 16;    // 吸附 Y 偏移 (px)
+    // 自由模式
+    bool    freeMode       = false;
+    int     freeAreaW      = 600;    // 自由布局区域宽度
+    int     freeAreaH      = 400;    // 自由布局区域高度
+    bool    freeShowBoundary = true; // 显示区域边界线
+    // 自由模式下 Total/KPS/BPM 框位置
+    int     freeTotalX     = 0;
+    int     freeTotalY     = 0;
+    int     freeKPSX       = 0;
+    int     freeKPSY       = 0;
+    int     freeBPMX       = 0;
+    int     freeBPMY       = 0;
+    // 录制功能
+    int     recordingHotkeyVK = 0;    // 录制快捷键 VK 码（0=未设置）
     std::vector<KeyConfig> keys;
 
     // 加载 / 保存 JSON 配置

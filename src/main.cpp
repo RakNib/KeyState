@@ -2,7 +2,10 @@
 #include <thread>
 #include <atomic>
 #include <string>
+#include <vector>
 #include <algorithm>
+#include <fstream>
+#include <ctime>
 #include "config.h"
 #include "keyboard.h"
 #include "display_ui.h"
@@ -31,6 +34,95 @@ static HICON           g_hIcon       = nullptr;
 
 static std::atomic<bool> g_running = true;
 
+// ========== 录制功能 ==========
+static std::atomic<bool> g_recording     = false;
+static std::atomic<bool> g_recordToggle  = false;  // 用于记录状态切换
+static uint64_t          g_recStartTime  = 0;
+
+struct RecordingSnapshot {
+    uint64_t timeMs;
+    uint64_t totalPresses;
+    int      totalKPS;
+    std::vector<uint64_t> keyTotals;
+    std::vector<int>      keyKPS;
+};
+static std::vector<RecordingSnapshot> g_recData;
+static std::vector<std::wstring>      g_recKeyLabels;
+
+static void SaveRecording(const wchar_t* exeDir) {
+    if (g_recData.empty()) return;
+
+    // 确保 record 文件夹存在
+    std::wstring recordDir = std::wstring(exeDir) + L"record";
+    CreateDirectoryW(recordDir.c_str(), nullptr);
+
+    // 生成文件名: KeyStateRecording_YYYYMMDD_HHMMSS.json
+    time_t t = time(nullptr);
+    struct tm tm;
+    localtime_s(&tm, &t);
+    wchar_t fname[MAX_PATH];
+    swprintf(fname, MAX_PATH, L"%lsrecord\\KeyStateRecording_%04d%02d%02d_%02d%02d%02d.json",
+             exeDir,
+             tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+             tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+    std::wstring out;
+    out += L"{\n";
+    out += L"  \"version\": 1,\n";
+    out += L"  \"startTime\": ";
+    out += std::to_wstring(g_recStartTime);
+    out += L",\n";
+    out += L"  \"durationMs\": ";
+    out += std::to_wstring(g_recData.back().timeMs);
+    out += L",\n";
+    out += L"  \"keys\": [\n";
+    for (size_t i = 0; i < g_recKeyLabels.size(); ++i) {
+        out += L"    \"" + g_recKeyLabels[i] + L"\"";
+        if (i + 1 < g_recKeyLabels.size()) out += L",";
+        out += L"\n";
+    }
+    out += L"  ],\n";
+    out += L"  \"data\": [\n";
+    for (size_t i = 0; i < g_recData.size(); ++i) {
+        auto& d = g_recData[i];
+        out += L"    {\n";
+        out += L"      \"time\": " + std::to_wstring(d.timeMs) + L",\n";
+        out += L"      \"totalPresses\": " + std::to_wstring(d.totalPresses) + L",\n";
+        out += L"      \"totalKPS\": " + std::to_wstring(d.totalKPS) + L",\n";
+        out += L"      \"keys\": [\n";
+        for (size_t j = 0; j < d.keyTotals.size(); ++j) {
+            out += L"        {";
+            out += L"\"total\": " + std::to_wstring(d.keyTotals[j]) + L", ";
+            out += L"\"kps\": " + std::to_wstring(d.keyKPS[j]);
+            out += L"}";
+            if (j + 1 < d.keyTotals.size()) out += L",";
+            out += L"\n";
+        }
+        out += L"      ]\n";
+        out += L"    }";
+        if (i + 1 < g_recData.size()) out += L",";
+        out += L"\n";
+    }
+    out += L"  ]\n";
+    out += L"}\n";
+
+    // UTF-8 写出
+    int ulen = WideCharToMultiByte(CP_UTF8, 0, out.c_str(), (int)out.size(), nullptr, 0, nullptr, nullptr);
+    std::string utf8(ulen, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, out.c_str(), (int)out.size(), &utf8[0], ulen, nullptr, nullptr);
+    HANDLE h = CreateFileW(fname, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (h != INVALID_HANDLE_VALUE) {
+        DWORD written = 0;
+        WriteFile(h, utf8.c_str(), (DWORD)utf8.size(), &written, nullptr);
+        CloseHandle(h);
+    }
+
+    // 通知用户
+    wchar_t msgBuf[512];
+    swprintf(msgBuf, 512, L"%ls\n%ls", LANG(104), fname);
+    MessageBoxW(g_hMainWnd, msgBuf, LANG(103), MB_ICONINFORMATION);
+}
+
 // ========== 配置文件路径（exe 同目录 KeyStateSetting.json） ==========
 static std::wstring g_configPath;
 
@@ -50,10 +142,8 @@ static std::wstring GetConfigPath() {
 }
 
 static HICON LoadAppIcon() {
-    // 优先使用嵌入资源
     HICON h = LoadIconW(GetModuleHandleW(nullptr), L"IDI_KEYSTATE");
     if (h) return h;
-    // 回退：从文件加载
     wchar_t exePath[MAX_PATH];
     GetModuleFileNameW(nullptr, exePath, MAX_PATH);
     wchar_t* lastSlash = wcsrchr(exePath, L'\\');
@@ -92,13 +182,11 @@ static void ShowTrayMenu(HWND hwnd) {
     AppendMenuW(hMenu, MF_STRING, 1, L"Settings");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(hMenu, MF_STRING, 2, L"Exit");
-
     POINT pt; GetCursorPos(&pt);
     SetForegroundWindow(hwnd);
     int cmd = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_NONOTIFY,
                               pt.x, pt.y, 0, hwnd, nullptr);
     DestroyMenu(hMenu);
-
     if (cmd == 1) { g_settings.Show(true); }
     if (cmd == 2) { PostQuitMessage(0); }
 }
@@ -108,7 +196,6 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
     case WM_CREATE:
         AddTrayIcon(hwnd);
-        // 注册热键 Ctrl+Shift+K 打开设置, Ctrl+Shift+T 主题编辑器
         RegisterHotKey(hwnd, 1, MOD_CONTROL | MOD_SHIFT, 'K');
         RegisterHotKey(hwnd, 2, MOD_CONTROL | MOD_SHIFT, 'T');
         break;
@@ -140,12 +227,45 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
 // ========== 叠加层更新线程 ==========
 static void OverlayUpdateLoop() {
-    // 使用 timeBeginPeriod 提高定时器精度
     timeBeginPeriod(1);
+    uint64_t lastRecSample = 0;
+    uint64_t lastRecUiUpdate = 0;
 
     while (g_running) {
+        uint64_t now = GetTickCount64();
+
         g_display.UpdateOverlay(g_config, g_keyState);
         if (g_config.showChart) g_chart.UpdateChart(g_config, g_keyState);
+
+        // 更新设置面板中的录制状态（每秒刷新几次即可）
+        if (now - lastRecUiUpdate >= 500) {
+            lastRecUiUpdate = now;
+            g_settings.UpdateRecordStatus(g_recording, g_recStartTime);
+        }
+
+        // 录制数据采样（每秒）
+        if (g_recording) {
+            if (lastRecSample == 0 || now - lastRecSample >= 1000) {
+                lastRecSample = now;
+                RecordingSnapshot snap;
+                snap.timeMs = now - g_recStartTime;
+                uint64_t sumTotal = 0;
+                double   sumKPS   = 0.0;
+                for (size_t i = 0; i < g_config.keys.size(); ++i) {
+                    auto& kc = g_config.keys[i];
+                    uint64_t t = g_keyState.GetTotal(kc.keyCode);
+                    double   k = g_keyState.GetKPS(kc.keyCode);
+                    snap.keyTotals.push_back(t);
+                    snap.keyKPS.push_back((int)k);
+                    sumTotal += t;
+                    sumKPS   += k;
+                }
+                snap.totalPresses = sumTotal;
+                snap.totalKPS     = (int)sumKPS;
+                g_recData.push_back(snap);
+            }
+        }
+
         int fps = g_config.fps;
         if (fps <= 0) fps = 45;
         Sleep(1000 / fps);
@@ -158,40 +278,33 @@ static void OverlayUpdateLoop() {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     g_hInst = hInstance;
 
-    // 1. 加载 KeyStateSetting.json（exe 同目录）
+    // 1. 加载配置
     auto cfgPath = GetConfigPath();
     SetLanguage(0);
-
-    // 提取 exe 目录用于主题文件
     wchar_t exeDir[MAX_PATH];
     wcscpy_s(exeDir, MAX_PATH, cfgPath.c_str());
     wchar_t* lastSlash2 = wcsrchr(exeDir, L'\\');
     if (lastSlash2) *(lastSlash2 + 1) = L'\0';
     std::wstring themePath = std::wstring(exeDir) + L"KeyStateThemes.json";
-    // 生成默认主题文件（不存在时）
     if (!FileExists(themePath.c_str())) {
         g_config.InitDefaultThemes();
         g_config.SaveThemes(themePath.c_str());
     }
     g_config.LoadThemes(themePath.c_str());
-
-    // 加载自定义图标
     g_hIcon = LoadAppIcon();
 
     if (FileExists(cfgPath.c_str())) {
         g_config.Load(cfgPath.c_str());
     } else {
-        // 文件不存在 → 创建默认配置并写入
         g_config = AppConfig{};
         g_config.keys.push_back({32, L"Space", {235,235,245,255}, {48,48,48,200}, {255,95,95,255}});
         g_config.keys.push_back({65, L"A",     {235,235,245,255}, {48,48,48,200}, {95,255,95,255}});
         g_config.keys.push_back({83, L"S",     {235,235,245,255}, {48,48,48,200}, {95,130,255,255}});
         g_config.keys.push_back({68, L"D",     {235,235,245,255}, {48,48,48,200}, {255,210,60,255}});
         g_config.Save(cfgPath.c_str());
-        g_config.LoadThemes(themePath.c_str()); // AppConfig{} 清空了 themePresets, 需重新加载
+        g_config.LoadThemes(themePath.c_str());
     }
 
-    // 清理 IME 虚拟键脏数据 + 边界保护
     bool cleaned = false;
     g_config.keys.erase(
         std::remove_if(g_config.keys.begin(), g_config.keys.end(),
@@ -205,16 +318,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
         cleaned = true;
     }
     if (cleaned) g_config.Save(cfgPath.c_str());
-
-    // 应用语言
     SetLanguage(g_config.lang);
-
-    // Total 每次启动从 0 开始
     for (auto& kc : g_config.keys) {
         kc.totalPresses = 0;
+        g_recKeyLabels.push_back(kc.label);
     }
 
-    // 2. 创建隐藏主窗口（消息泵 + 托盘 + 热键）
+    // 2. 创建隐藏主窗口
     WNDCLASSEXW wc = {};
     wc.cbSize        = sizeof(wc);
     wc.lpfnWndProc   = MainWndProc;
@@ -222,7 +332,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     wc.lpszClassName = L"KeyStateMainV3";
     wc.hIcon         = g_hIcon;
     RegisterClassExW(&wc);
-
     g_hMainWnd = CreateWindowExW(0, L"KeyStateMainV3", L"KeyState Main",
                                   WS_OVERLAPPED, 0, 0, 0, 0,
                                   nullptr, nullptr, hInstance, nullptr);
@@ -230,7 +339,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     // 3. 创建 State 悬浮叠加层
     g_display.Create(hInstance);
     g_display.SetConfig(&g_config);
-    g_display.SetConfigPath(cfgPath.c_str());       // 拖拽保存用
+    g_display.SetConfigPath(cfgPath.c_str());
     g_display.SetClickThrough(g_config.clickThrough);
     g_display.SetTopMost(g_config.alwaysOnTop);
     g_display.SetNotifyHwnd(g_hMainWnd);
@@ -249,13 +358,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     g_settings.SetConfigPath(cfgPath.c_str());
     g_settings.Show(true);
 
-    // 4.5 创建主题编辑器（Ctrl+Shift+T 打开）
+    // 4.5 创建主题编辑器
     g_themeEditor.Create(hInstance, &g_config);
     g_themeEditor.SetConfigPath(themePath.c_str());
     g_themeEditor.SetSettings(&g_settings);
 
-    // 5. 安装键盘钩子
-    g_keyHook.Install([](int keyCode, bool pressed) {
+    // 5. 安装键盘钩子（同时检测录制快捷键）
+    g_keyHook.Install([&exeDir](int keyCode, bool pressed) {
+        // 检测录制快捷键（仅在按下时触发）
+        if (pressed && g_config.recordingHotkeyVK != 0 && keyCode == g_config.recordingHotkeyVK) {
+            if (!g_recording) {
+                // 开始录制
+                g_recording = true;
+                g_recData.clear();
+                g_recStartTime = GetTickCount64();
+                // 更新标签列表（按键可能已变化）
+                g_recKeyLabels.clear();
+                for (auto& kc : g_config.keys)
+                    g_recKeyLabels.push_back(kc.label);
+            } else {
+                // 停止录制
+                g_recording = false;
+                SaveRecording(exeDir);
+            }
+            return;
+        }
+
         // 只跟踪配置中的按键
         for (auto& kc : g_config.keys) {
             if (kc.keyCode == keyCode) {
@@ -278,11 +406,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     // 8. 清理
     g_running = false;
     if (renderThread.joinable()) renderThread.join();
-
     g_keyHook.Uninstall();
-
-    // 最终保存
     SyncAndSave();
+
+    // 如果录制未保存，保存
+    if (g_recording) {
+        g_recording = false;
+        SaveRecording(exeDir);
+    }
 
     return 0;
 }

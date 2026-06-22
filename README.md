@@ -1,4 +1,4 @@
-# KeyState V1.2
+# KeyState V1.3
 
 > Lightweight Windows real-time keyboard state overlay monitor
 
@@ -139,6 +139,15 @@ src/
 ---
 
 ## Version History
+
+### V1.3 (2026-06)
+
+- Added: **Chart type switching** — line / scatter / bar chart
+- Added: **Gradient fill** for chart area (line fill & bar gradient)
+- Added: **Free Mode** — freely draggable key mappings within a configurable area
+- Added: **Recording feature** — set a hotkey to start/stop recording; saves per-second KPS/total data as JSON
+- Fixed: KPS now displays as integer only (removed decimal part)
+- Changed: Total / KPS / BPM box default colors — black font, white background
 
 ### V1.2 (2026-06)
 

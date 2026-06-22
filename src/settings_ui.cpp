@@ -114,6 +114,18 @@ enum {
     CID_BTN_FONT          = 213,
     CID_CHK_TRACK_LINES   = 214,
     CID_CHK_CHART_GRID    = 215,
+    CID_RADIO_CHART_LINE  = 216,
+    CID_RADIO_CHART_SCATTER = 217,
+    CID_RADIO_CHART_BAR   = 218,
+    CID_CHK_CHART_GRADIENT = 219,
+    CID_RADIO_NORMAL_MODE = 220,
+    CID_RADIO_FREE_MODE   = 221,
+    CID_BTN_RECORD_HOTKEY = 222,
+    CID_TRACK_FREE_AREA_W = 223,
+    CID_EDIT_FREE_AREA_W  = 224,
+    CID_TRACK_FREE_AREA_H = 225,
+    CID_EDIT_FREE_AREA_H  = 226,
+    CID_CHK_FREE_BOUNDARY = 227,
 };
 
 // 色块控件
@@ -236,7 +248,8 @@ LRESULT CALLBACK SettingsUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
 void SettingsUI::OnCreate(HWND hwnd) {
     auto ctl = [&](const wchar_t* cls, const wchar_t* text, DWORD style, int x, int y, int w, int h, int id) -> HWND {
         HWND c = CreateWindowExW(0, cls, text, style | WS_VISIBLE | WS_CHILD, x, y, w, h, hwnd, (HMENU)(INT_PTR)id, m_hInst, nullptr);
-        if (m_hFont) SendMessageW(c, WM_SETFONT, (WPARAM)m_hFont, TRUE); return c;
+        if (m_hFont) { SendMessageW(c, WM_SETFONT, (WPARAM)m_hFont, TRUE); }
+        return c;
     };
     auto lbl = [&](const wchar_t* text, int x, int y, int w, int h) { return ctl(L"STATIC", text, SS_LEFT, x, y, w, h, 0); };
     auto sep = [&](int y) { ctl(L"STATIC", L"", SS_ETCHEDHORZ | SS_SUNKEN, 15, y, 500, 2, 0); };
@@ -318,6 +331,23 @@ void SettingsUI::OnCreate(HWND hwnd) {
     // 4. Key Mappings + Layout
     div(y);
     lbl(LANG(15), CX, y, 150, 20); y += 26;
+    // 布局模式
+    lbl(LANG(95), CX, y, 70, 24);
+    m_radioNormalMode = ctl(L"BUTTON", LANG(96), BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, CX + 72, y, 80, 22, CID_RADIO_NORMAL_MODE);
+    m_radioFreeMode = ctl(L"BUTTON", LANG(97), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 158, y, 80, 22, CID_RADIO_FREE_MODE);
+    if (m_cfg) {
+        SendMessageW(m_radioNormalMode, BM_SETCHECK, m_cfg->freeMode ? BST_UNCHECKED : BST_CHECKED, 0);
+        SendMessageW(m_radioFreeMode, BM_SETCHECK, m_cfg->freeMode ? BST_CHECKED : BST_UNCHECKED, 0);
+    }
+    y += 30;
+    // 自由模式区域尺寸
+    m_chkFreeBoundary = ctl(L"BUTTON", L"显示区域边界", BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 120, 22, CID_CHK_FREE_BOUNDARY);
+    if (m_cfg) SendMessageW(m_chkFreeBoundary, BM_SETCHECK, m_cfg->freeShowBoundary ? BST_CHECKED : BST_UNCHECKED, 0);
+    y += 28;
+    mks(CX, y, L"区域宽度 (px)", CID_TRACK_FREE_AREA_W, CID_EDIT_FREE_AREA_W, m_trackFreeAreaW, m_editFreeAreaW, 200, 1200, m_cfg ? m_cfg->freeAreaW : 600, 100);
+    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg?m_cfg->freeAreaW:600); SetWindowTextW(m_editFreeAreaW,tb); }
+    mks(CX, y, L"区域高度 (px)", CID_TRACK_FREE_AREA_H, CID_EDIT_FREE_AREA_H, m_trackFreeAreaH, m_editFreeAreaH, 100, 800, m_cfg ? m_cfg->freeAreaH : 400, 50);
+    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg?m_cfg->freeAreaH:400); SetWindowTextW(m_editFreeAreaH,tb); }
     m_listKeys = ctl(L"LISTBOX", L"", LBS_NOTIFY | WS_VSCROLL | WS_BORDER | WS_TABSTOP, CX, y, 370, 100, CID_LIST_KEYS);
     m_btnAdd = ctl(L"BUTTON", LANG(16), BS_PUSHBUTTON | WS_TABSTOP, 400, y, 90, 30, CID_BTN_ADD);
     m_btnDel = ctl(L"BUTTON", LANG(17), BS_PUSHBUTTON | WS_TABSTOP, 400, y + 36, 90, 30, CID_BTN_DEL);
@@ -341,6 +371,8 @@ void SettingsUI::OnCreate(HWND hwnd) {
         SendMessageW(m_chkHistory, BM_SETCHECK, m_cfg->showHistory ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(m_chkTrackLines, BM_SETCHECK, m_cfg->historyShowLines ? BST_CHECKED : BST_UNCHECKED, 0);
     }
+    // 自由模式下禁用轨道
+    if (m_cfg && m_cfg->freeMode && m_chkHistory) EnableWindow(m_chkHistory, FALSE);
     mks(CX, y, LANG(10), CID_TRACK_HISTORYH, CID_EDIT_HISTORYH, m_trackHistoryH, m_editHistoryH, 20, 600, m_cfg->historyTrackH, 10); SyncHistoryHEdit();
     mks(CX, y, LANG(11), CID_TRACK_GROWSPD, CID_EDIT_GROWSPD, m_trackGrowSpd, m_editGrowSpd, 10, 300, m_cfg->historyGrowSpeed, 20); SyncGrowSpdEdit();
     mks(CX, y, LANG(12), CID_TRACK_FLOATSPD, CID_EDIT_FLOATSPD, m_trackFloatSpd, m_editFloatSpd, 10, 300, m_cfg->historyFloatSpeed, 20); SyncFloatSpdEdit();
@@ -381,10 +413,22 @@ void SettingsUI::OnCreate(HWND hwnd) {
     div(y);
     lbl(LANG(58), CX, y, 120, 20); y += 26;
     m_chkChart = ctl(L"BUTTON", LANG(59), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 140, 24, CID_CHK_CHART);
-    m_chkChartGrid = ctl(L"BUTTON", LANG(90), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 150, y, 140, 24, CID_CHK_CHART_GRID); y += 36;
+    m_chkChartGrid = ctl(L"BUTTON", LANG(90), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 150, y, 140, 24, CID_CHK_CHART_GRID); y += 28;
+    // 图表类型
+    lbl(L"图表类型:", CX, y, 65, 24);
+    m_radioChartLine = ctl(L"BUTTON", LANG(91), BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, CX + 68, y, 60, 22, CID_RADIO_CHART_LINE);
+    m_radioChartScatter = ctl(L"BUTTON", LANG(92), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 130, y, 65, 22, CID_RADIO_CHART_SCATTER);
+    m_radioChartBar = ctl(L"BUTTON", LANG(93), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 200, y, 65, 22, CID_RADIO_CHART_BAR);
+    m_chkChartGradient = ctl(L"BUTTON", LANG(94), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 280, y, 100, 24, CID_CHK_CHART_GRADIENT);
+    y += 30;
     if (m_cfg) {
         SendMessageW(m_chkChart, BM_SETCHECK, m_cfg->showChart ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(m_chkChartGrid, BM_SETCHECK, m_cfg->chartShowGrid ? BST_CHECKED : BST_UNCHECKED, 0);
+        int ct = m_cfg->chartType;
+        SendMessageW(m_radioChartLine, BM_SETCHECK, (ct == 0) ? BST_CHECKED : BST_UNCHECKED, 0);
+        SendMessageW(m_radioChartScatter, BM_SETCHECK, (ct == 1) ? BST_CHECKED : BST_UNCHECKED, 0);
+        SendMessageW(m_radioChartBar, BM_SETCHECK, (ct == 2) ? BST_CHECKED : BST_UNCHECKED, 0);
+        SendMessageW(m_chkChartGradient, BM_SETCHECK, m_cfg->chartGradientFill ? BST_CHECKED : BST_UNCHECKED, 0);
     }
     mks(CX, y, LANG(60), CID_TRACK_CHARTTIME, CID_EDIT_CHARTTIME, m_trackChartTime, m_editChartTime, 1, 30, m_cfg->chartTimeRange / 1000, 1);
     { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartTimeRange / 1000); SetWindowTextW(m_editChartTime, tb); }
@@ -413,13 +457,31 @@ void SettingsUI::OnCreate(HWND hwnd) {
     // 7.5 吸附
     div(y);
     m_chkChartSnap = ctl(L"BUTTON", L"吸附到按键映射下方", BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 180, 24, CID_CHK_CHART_SNAP);
-    if (m_cfg) SendMessageW(m_chkChartSnap, BM_SETCHECK, m_cfg->chartSnap ? BST_CHECKED : BST_UNCHECKED, 0); y += 28;
+    if (m_cfg) { SendMessageW(m_chkChartSnap, BM_SETCHECK, m_cfg->chartSnap ? BST_CHECKED : BST_UNCHECKED, 0); }
+    if (m_cfg && m_cfg->freeMode && m_chkChartSnap) EnableWindow(m_chkChartSnap, FALSE);
+    y += 28;
     mks(CX, y, L"X 偏移 (px)", CID_TRACK_CHART_SNAPX, CID_EDIT_CHART_SNAPX, m_trackChartSnapX, m_editChartSnapX, -200, 200, m_cfg->chartSnapOffsetX, 50);
     { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartSnapOffsetX); SetWindowTextW(m_editChartSnapX, tb); }
     mks(CX, y, L"Y 偏移 (px)", CID_TRACK_CHART_SNAPY, CID_EDIT_CHART_SNAPY, m_trackChartSnapY, m_editChartSnapY, -200, 200, m_cfg->chartSnapOffsetY, 50);
     { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartSnapOffsetY); SetWindowTextW(m_editChartSnapY, tb); }
 
-    // 8. Save / Reset
+    // 8. Recording
+    div(y);
+    lbl(LANG(98), CX, y, 120, 20); y += 26;
+    lbl(LANG(99), CX, y, 90, 24);
+    m_btnRecordHotkey = ctl(L"BUTTON", LANG(100), BS_PUSHBUTTON | WS_TABSTOP, CX + 95, y, 200, 26, CID_BTN_RECORD_HOTKEY);
+    if (m_cfg && m_cfg->recordingHotkeyVK != 0) {
+        wchar_t kb[64];
+        UINT sc = MapVirtualKeyW((UINT)m_cfg->recordingHotkeyVK, MAPVK_VK_TO_VSC);
+        LONG lp = (sc << 16);
+        GetKeyNameTextW(lp, kb, 64);
+        SetWindowTextW(m_btnRecordHotkey, kb);
+    }
+    y += 32;
+    m_lblRecordStatus = lbl(LANG(105), CX, y, 300, 24);
+    y += 34;
+
+    // 9. Save / Reset
     div(y);
     m_btnResetAll = ctl(L"BUTTON", LANG(55), BS_PUSHBUTTON, CX, y, 140, 32, CID_BTN_RESET);
     m_btnSave = ctl(L"BUTTON", LANG(22), BS_PUSHBUTTON | WS_TABSTOP, CX + 160, y, 120, 32, CID_BTN_SAVE);
@@ -570,6 +632,106 @@ void SettingsUI::OnCommand(WPARAM wp, LPARAM lp) {
             OnSave();
         }
         break;
+    case CID_RADIO_CHART_LINE:
+        if (m_cfg && SendMessageW(m_radioChartLine, BM_GETCHECK, 0, 0) == BST_CHECKED)
+            { m_cfg->chartType = 0; OnSave(); } break;
+    case CID_RADIO_CHART_SCATTER:
+        if (m_cfg && SendMessageW(m_radioChartScatter, BM_GETCHECK, 0, 0) == BST_CHECKED)
+            { m_cfg->chartType = 1; OnSave(); } break;
+    case CID_RADIO_CHART_BAR:
+        if (m_cfg && SendMessageW(m_radioChartBar, BM_GETCHECK, 0, 0) == BST_CHECKED)
+            { m_cfg->chartType = 2; OnSave(); } break;
+    case CID_CHK_CHART_GRADIENT:
+        if (m_cfg) {
+            m_cfg->chartGradientFill = (SendMessageW(m_chkChartGradient, BM_GETCHECK, 0, 0) == BST_CHECKED);
+            OnSave();
+        }
+        break;
+    case CID_CHK_FREE_BOUNDARY:
+        if (m_cfg) {
+            m_cfg->freeShowBoundary = (SendMessageW(m_chkFreeBoundary, BM_GETCHECK, 0, 0) == BST_CHECKED);
+            OnSave();
+        }
+        break;
+    case CID_RADIO_NORMAL_MODE:
+        if (m_cfg && SendMessageW(m_radioNormalMode, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+            m_cfg->freeMode = false;
+            // 恢复轨道和图表吸附的可选状态
+            if (m_chkHistory) EnableWindow(m_chkHistory, TRUE);
+            if (m_chkChartSnap) EnableWindow(m_chkChartSnap, TRUE);
+            OnSave();
+        }
+        break;
+    case CID_RADIO_FREE_MODE:
+        if (m_cfg && SendMessageW(m_radioFreeMode, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+            m_cfg->freeMode = true;
+            // 禁用轨道和图表吸附
+            if (m_cfg->showHistory) {
+                m_cfg->showHistory = false;
+                if (m_chkHistory) {
+                    SendMessageW(m_chkHistory, BM_SETCHECK, BST_UNCHECKED, 0);
+                }
+            }
+            if (m_cfg->chartSnap) {
+                m_cfg->chartSnap = false;
+                if (m_chkChartSnap) {
+                    SendMessageW(m_chkChartSnap, BM_SETCHECK, BST_UNCHECKED, 0);
+                }
+            }
+            if (m_chkHistory) EnableWindow(m_chkHistory, FALSE);
+            if (m_chkChartSnap) EnableWindow(m_chkChartSnap, FALSE);
+            // 初始化各元素位置
+            if (!m_cfg->keys.empty()) {
+                int ks = m_cfg->keySize;
+                int gap = m_cfg->keySpacing;
+                int pad = 10;
+                for (int i = 0; i < (int)m_cfg->keys.size(); ++i) {
+                    m_cfg->keys[i].freeX = pad + i * (ks + gap);
+                    m_cfg->keys[i].freeY = pad;
+                }
+                int nKeys = (int)m_cfg->keys.size();
+                m_cfg->freeTotalX = pad + nKeys * (ks + gap);
+                m_cfg->freeTotalY = pad;
+                m_cfg->freeKPSX = pad + (nKeys + 1) * (ks + gap);
+                m_cfg->freeKPSY = pad;
+                m_cfg->freeBPMX = pad + (nKeys + 2) * (ks + gap);
+                m_cfg->freeBPMY = pad;
+            }
+            OnSave();
+        }
+        break;
+    case CID_BTN_RECORD_HOTKEY: {
+        if (!m_cfg) break;
+        // 暂停钩子
+        KeyboardHook::SetBlocked(true);
+        SetWindowTextW(m_btnRecordHotkey, LANG(101));
+        int capturedVK = 0;
+        MSG msg;
+        while (capturedVK == 0 && GetMessageW(&msg, nullptr, 0, 0)) {
+            if (msg.message == WM_KEYDOWN) {
+                int vk = (int)msg.wParam;
+                if (vk == 229) { TranslateMessage(&msg); DispatchMessageW(&msg); continue; }
+                capturedVK = vk;
+                if (capturedVK == VK_ESCAPE) capturedVK = -1;
+                break;
+            }
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+        KeyboardHook::SetBlocked(false);
+        if (capturedVK <= 0) {
+            SetWindowTextW(m_btnRecordHotkey, LANG(100));
+            break;
+        }
+        m_cfg->recordingHotkeyVK = capturedVK;
+        wchar_t kb[64];
+        UINT sc = MapVirtualKeyW((UINT)capturedVK, MAPVK_VK_TO_VSC);
+        LONG lp = (sc << 16);
+        GetKeyNameTextW(lp, kb, 64);
+        SetWindowTextW(m_btnRecordHotkey, kb);
+        OnSave();
+        break;
+    }
     }
 }
 
@@ -652,6 +814,14 @@ void SettingsUI::OnHScroll(WPARAM wp, LPARAM lp) {
     } else if (hwndTrack == m_trackChartSnapY && m_cfg) {
         m_cfg->chartSnapOffsetY = (int)SendMessageW(m_trackChartSnapY, TBM_GETPOS, 0, 0);
         wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->chartSnapOffsetY); SetWindowTextW(m_editChartSnapY,tb);
+        OnSave();
+    } else if (hwndTrack == m_trackFreeAreaW && m_cfg) {
+        m_cfg->freeAreaW = (int)SendMessageW(m_trackFreeAreaW, TBM_GETPOS, 0, 0);
+        wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeAreaW); SetWindowTextW(m_editFreeAreaW,tb);
+        OnSave();
+    } else if (hwndTrack == m_trackFreeAreaH && m_cfg) {
+        m_cfg->freeAreaH = (int)SendMessageW(m_trackFreeAreaH, TBM_GETPOS, 0, 0);
+        wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeAreaH); SetWindowTextW(m_editFreeAreaH,tb);
         OnSave();
     }
 }
@@ -1182,6 +1352,17 @@ void SettingsUI::OnSave() {
     int sy = _wtoi(buf);
     if (sy >= -200 && sy <= 200) { m_cfg->chartSnapOffsetY = sy; SendMessageW(m_trackChartSnapY, TBM_SETPOS, TRUE, sy); }
 
+    if (m_editFreeAreaW) {
+        GetWindowTextW(m_editFreeAreaW, buf, 16);
+        int fw = _wtoi(buf);
+        if (fw >= 200 && fw <= 1200) { m_cfg->freeAreaW = fw; if (m_trackFreeAreaW) SendMessageW(m_trackFreeAreaW, TBM_SETPOS, TRUE, fw); }
+    }
+    if (m_editFreeAreaH) {
+        GetWindowTextW(m_editFreeAreaH, buf, 16);
+        int fh = _wtoi(buf);
+        if (fh >= 100 && fh <= 800) { m_cfg->freeAreaH = fh; if (m_trackFreeAreaH) SendMessageW(m_trackFreeAreaH, TBM_SETPOS, TRUE, fh); }
+    }
+
     const wchar_t* savePath = m_configPath.empty() ? L"KeyStateSetting.json" : m_configPath.c_str();
     m_cfg->Save(savePath);
 
@@ -1324,7 +1505,54 @@ void SettingsUI::RefreshControls() {
     SendMessageW(m_trackChartSnapY, TBM_SETPOS, TRUE, m_cfg->chartSnapOffsetY);
     { wchar_t yb[16]; swprintf(yb,16,L"%d",m_cfg->chartSnapOffsetY); SetWindowTextW(m_editChartSnapY,yb); }
 
+    // Chart type
+    int ct = m_cfg->chartType;
+    SendMessageW(m_radioChartLine, BM_SETCHECK, (ct == 0) ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_radioChartScatter, BM_SETCHECK, (ct == 1) ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_radioChartBar, BM_SETCHECK, (ct == 2) ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_chkChartGradient, BM_SETCHECK, m_cfg->chartGradientFill ? BST_CHECKED : BST_UNCHECKED, 0);
+
+    // Layout mode
+    SendMessageW(m_radioNormalMode, BM_SETCHECK, m_cfg->freeMode ? BST_UNCHECKED : BST_CHECKED, 0);
+    SendMessageW(m_radioFreeMode, BM_SETCHECK, m_cfg->freeMode ? BST_CHECKED : BST_UNCHECKED, 0);
+    // 自由模式区域尺寸
+    SendMessageW(m_trackFreeAreaW, TBM_SETPOS, TRUE, m_cfg->freeAreaW);
+    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeAreaW); SetWindowTextW(m_editFreeAreaW,tb); }
+    SendMessageW(m_trackFreeAreaH, TBM_SETPOS, TRUE, m_cfg->freeAreaH);
+    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeAreaH); SetWindowTextW(m_editFreeAreaH,tb); }
+    SendMessageW(m_chkFreeBoundary, BM_SETCHECK, m_cfg->freeShowBoundary ? BST_CHECKED : BST_UNCHECKED, 0);
+    // 自由模式下禁用轨道和图表吸附
+    if (m_chkHistory) EnableWindow(m_chkHistory, m_cfg->freeMode ? FALSE : TRUE);
+    if (m_chkChartSnap) EnableWindow(m_chkChartSnap, m_cfg->freeMode ? FALSE : TRUE);
+
+    // Recording hotkey button
+    if (m_cfg->recordingHotkeyVK != 0) {
+        wchar_t kb[64];
+        UINT sc = MapVirtualKeyW((UINT)m_cfg->recordingHotkeyVK, MAPVK_VK_TO_VSC);
+        LONG lp = (sc << 16);
+        GetKeyNameTextW(lp, kb, 64);
+        SetWindowTextW(m_btnRecordHotkey, kb);
+    } else {
+        SetWindowTextW(m_btnRecordHotkey, LANG(100));
+    }
+
     RefreshKeyList();
+}
+
+// ========== 录制状态更新 ==========
+void SettingsUI::UpdateRecordStatus(bool recording, uint64_t startTime) {
+    if (!m_lblRecordStatus) return;
+    if (recording) {
+        uint64_t elapsed = GetTickCount64() - startTime;
+        int totalSec = (int)(elapsed / 1000);
+        int min = totalSec / 60;
+        int sec = totalSec % 60;
+        wchar_t buf[128];
+        swprintf(buf, 128, L"%ls  %02d:%02d", LANG(102), min, sec);
+        SetWindowTextW(m_lblRecordStatus, buf);
+    } else {
+        SetWindowTextW(m_lblRecordStatus, LANG(105));
+    }
 }
 
 void SettingsUI::OnDestroy() {

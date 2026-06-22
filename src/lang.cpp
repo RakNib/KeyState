@@ -191,6 +191,36 @@ static const wchar_t* g_strings[][3] = {
     {L"显示轨道线",       L"Show Track Lines",   L"トラック線表示"},
     // 90
     {L"显示网格线",       L"Show Grid Lines",    L"グリッド線表示"},
+    // 91
+    {L"折线图", L"Line", L"折れ線"},
+    // 92
+    {L"散点图", L"Scatter", L"散布図"},
+    // 93
+    {L"柱状图", L"Bar", L"棒グラフ"},
+    // 94
+    {L"渐变填充", L"Gradient Fill", L"グラデーション"},
+    // 95
+    {L"布局模式", L"Layout Mode", L"レイアウトモード"},
+    // 96
+    {L"常规模式", L"Normal Mode", L"通常モード"},
+    // 97
+    {L"自由模式", L"Free Mode", L"フリーモード"},
+    // 98
+    {L"录制功能", L"Recording", L"録画機能"},
+    // 99
+    {L"录制快捷键", L"Record Hotkey", L"録画ショートカット"},
+    // 100
+    {L"点击设置录制快捷键…", L"Click to set record hotkey…", L"クリックして録画キー設定…"},
+    // 101
+    {L"按任意键设置录制快捷键… (ESC 取消)", L"Press any key for record hotkey… (ESC cancel)", L"録画キーを押してください… (ESC取消)"},
+    // 102
+    {L"录制中… 再次按下快捷键停止", L"Recording… Press hotkey again to stop", L"録画中… もう一度押して停止"},
+    // 103
+    {L"录制已保存", L"Recording saved", L"録画保存完了"},
+    // 104
+    {L"录制数据已保存到", L"Recording data saved to", L"録画データを保存しました"},
+    // 105
+    {L"未录制", L"Not Recording", L"未録画"},
 };
 
 const wchar_t* LANG(int key) {

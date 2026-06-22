@@ -200,20 +200,20 @@ bool ChartUI::RenderChart(const AppConfig& cfg, const KeyStateManager& ksm,
         g.DrawString(buf, -1, m_smallFont, xLabelR, &xFmt, &labelBrush);
     }
 
-    // === 折线绘制 ===
-    if (m_history.size() >= 2) {
-        auto mapX = [&](uint64_t t) -> float {
-            float ratio = 1.0f - (float)(now - t) / (float)tRange;
-            if (ratio < 0) ratio = 0;
-            if (ratio > 1) ratio = 1;
-            return mgL + ratio * plotW;
-        };
-        auto mapY = [&](double kps) -> int {
-            return mgT + plotH - (int)(plotH * kps / yMax);
-        };
+    // === 提取 mapX/mapY 到公共 lambdas ===
+    auto mapX = [&](uint64_t t) -> float {
+        float ratio = 1.0f - (float)(now - t) / (float)tRange;
+        if (ratio < 0) ratio = 0;
+        if (ratio > 1) ratio = 1;
+        return mgL + ratio * plotW;
+    };
+    auto mapY = [&](double kps) -> int {
+        return mgT + plotH - (int)(plotH * kps / yMax);
+    };
+    auto& lc = cfg.chartLineCol;
 
-        auto& lc = cfg.chartLineCol;
-
+    // === 折线绘制 (chartType == 0) ===
+    if (cfg.chartType == 0 && m_history.size() >= 2) {
         // 填充区域
         Gdiplus::GraphicsPath fillPath;
         auto& first = m_history.front();
@@ -226,10 +226,22 @@ bool ChartUI::RenderChart(const AppConfig& cfg, const KeyStateManager& ksm,
                           mapX(last.time), (float)(mgT + plotH));
         fillPath.CloseFigure();
 
-        Gdiplus::SolidBrush fillBrush(Gdiplus::Color(35, lc.r, lc.g, lc.b));
-        Gdiplus::Rect clipRect(mgL, mgT, plotW, plotH);
-        g.SetClip(clipRect, Gdiplus::CombineModeIntersect);
-        g.FillPath(&fillBrush, &fillPath);
+        if (cfg.chartGradientFill) {
+            Gdiplus::RectF gradRect((float)mgL, (float)mgT, (float)plotW, (float)plotH);
+            Gdiplus::LinearGradientBrush gradBrush(
+                gradRect,
+                Gdiplus::Color(80, lc.r, lc.g, lc.b),
+                Gdiplus::Color(10, lc.r, lc.g, lc.b),
+                Gdiplus::LinearGradientModeVertical);
+            Gdiplus::Rect clipRect(mgL, mgT, plotW, plotH);
+            g.SetClip(clipRect, Gdiplus::CombineModeIntersect);
+            g.FillPath(&gradBrush, &fillPath);
+        } else {
+            Gdiplus::SolidBrush fillBrush(Gdiplus::Color(35, lc.r, lc.g, lc.b));
+            Gdiplus::Rect clipRect(mgL, mgT, plotW, plotH);
+            g.SetClip(clipRect, Gdiplus::CombineModeIntersect);
+            g.FillPath(&fillBrush, &fillPath);
+        }
 
         // 折线
         Gdiplus::Pen linePen(Gdiplus::Color(lc.a, lc.r, lc.g, lc.b), 1.8f);
@@ -243,9 +255,9 @@ bool ChartUI::RenderChart(const AppConfig& cfg, const KeyStateManager& ksm,
         }
         g.SetClip(&clipPath);  // 恢复圆角裁剪
 
-        // 当前值标注（固定在最右侧，不随数据点位置抖动）
+        // 当前值标注
         Gdiplus::SolidBrush curBrush(Gdiplus::Color(240, lc.r, lc.g, lc.b));
-        swprintf(buf, 32, L"%.1f", curKPS);
+        swprintf(buf, 32, L"%d", (int)curKPS);
         float labelX = (float)(mgL + plotW - 35);
         float labelY = (float)(mapY(last.kps) - 12);
         if (labelY < mgT) labelY = (float)mgT;
@@ -259,6 +271,59 @@ bool ChartUI::RenderChart(const AppConfig& cfg, const KeyStateManager& ksm,
         float cy = (float)mapY(last.kps);
         Gdiplus::SolidBrush dotBrush(Gdiplus::Color(240, lc.r, lc.g, lc.b));
         g.FillEllipse(&dotBrush, cx - 2.5f, cy - 2.5f, 5.0f, 5.0f);
+    }
+
+    // === 散点图渲染 (chartType == 1) ===
+    if (cfg.chartType == 1 && m_history.size() >= 2) {
+        float dotSize = 4.0f;
+        Gdiplus::Color dotColor(lc.a, lc.r, lc.g, lc.b);
+        Gdiplus::SolidBrush dotBrush(dotColor);
+        Gdiplus::Pen dotPen(dotColor, 0.5f);
+        for (auto& p : m_history) {
+            float dx = mapX(p.time);
+            float dy = (float)mapY(p.kps);
+            g.FillEllipse(&dotBrush, dx - dotSize, dy - dotSize, dotSize * 2, dotSize * 2);
+            g.DrawEllipse(&dotPen, dx - dotSize, dy - dotSize, dotSize * 2, dotSize * 2);
+        }
+    }
+
+    // === 柱状图渲染 (chartType == 2) ===
+    if (cfg.chartType == 2 && m_history.size() >= 1) {
+        int n = (int)m_history.size();
+        float barWidth = (float)plotW / (float)(std::max)(1, n) * 0.7f;
+        if (barWidth < 1.0f) barWidth = 1.0f;
+
+        for (size_t i = 0; i < m_history.size(); ++i) {
+            float bx = mapX(m_history[i].time) - barWidth / 2.0f;
+            float by = (float)mapY(m_history[i].kps);
+            float bh = (float)(mgT + plotH) - by;
+
+            if (cfg.chartGradientFill) {
+                Gdiplus::RectF gradRect(bx, by, barWidth, bh);
+                Gdiplus::LinearGradientBrush gradBrush(
+                    gradRect,
+                    Gdiplus::Color(lc.a, lc.r, lc.g, lc.b),
+                    Gdiplus::Color(30, lc.r, lc.g, lc.b),
+                    Gdiplus::LinearGradientModeVertical);
+                Gdiplus::GraphicsPath barPath;
+                float r = 2.0f;
+                if (r * 2 > barWidth) r = barWidth / 2.0f;
+                if (r * 2 > bh) r = bh / 2.0f;
+                if (r > 0) {
+                    barPath.AddArc(bx, by, r * 2, r * 2, 180.0f, 90.0f);
+                    barPath.AddArc(bx + barWidth - r * 2, by, r * 2, r * 2, 270.0f, 90.0f);
+                    barPath.AddArc(bx + barWidth - r * 2, by + bh - r * 2, r * 2, r * 2, 0.0f, 90.0f);
+                    barPath.AddArc(bx, by + bh - r * 2, r * 2, r * 2, 90.0f, 90.0f);
+                    barPath.CloseFigure();
+                    g.FillPath(&gradBrush, &barPath);
+                } else {
+                    g.FillRectangle(&gradBrush, bx, by, barWidth, bh);
+                }
+            } else {
+                Gdiplus::SolidBrush barBrush(Gdiplus::Color(lc.a, lc.r, lc.g, lc.b));
+                g.FillRectangle(&barBrush, bx, by, barWidth, bh);
+            }
+        }
     }
 
     g.ResetClip();

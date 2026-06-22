@@ -64,14 +64,16 @@ void DisplayUI::UpdateOverlay(const AppConfig& cfg, const KeyStateManager& ksm) 
     blend.SourceConstantAlpha = (BYTE)(cfg.overlayOpacity * 255);
     blend.AlphaFormat         = AC_SRC_ALPHA;
 
-    // 计算轨道偏移：开启轨道时窗口上移，保持按键映射位置不变
+    // 计算轨道偏移
     int trackOffsetY = 0;
     if (cfg.showHistory && !cfg.keys.empty()) {
         trackOffsetY = cfg.historyTrackH + cfg.historyTrackGap;
     }
+    // 自由模式：渲染器在 bitmap 左侧/顶部加了 10px margin，窗口位置左移/上移补偿
+    POINT ptDst = {cfg.displayX - (cfg.freeMode ? 10 : 0),
+                   cfg.displayY - trackOffsetY - (cfg.freeMode ? 10 : 0)};
     SIZE   sz    = {w, h};
     POINT  ptSrc = {0, 0};
-    POINT  ptDst = {cfg.displayX, cfg.displayY - trackOffsetY};
 
     UpdateLayeredWindow(m_hwnd, hdcScreen, &ptDst, &sz,
                         hMemDC, &ptSrc, 0, &blend, ULW_ALPHA);
@@ -133,26 +135,171 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             PostMessageW(self->m_notifyHwnd, WM_APP + 2, 0, 0);
         return 0;
 
-    case WM_LBUTTONDOWN:
-        // 开始拖拽
+    case WM_LBUTTONDOWN: {
         SetCapture(hwnd);
         self->m_dragging = true;
         GetCursorPos(&self->m_dragOffset);
-        // 偏移 = 鼠标屏幕坐标 - 窗口当前左上角
-        if (self->m_cfg) {
+        if (!self->m_cfg) return 0;
+
+        if (self->m_cfg->freeMode) {
+            // 自由模式：检测点击到哪个元素
+            POINT pt;
+            GetCursorPos(&pt);
+            int cx = pt.x;
+            int cy = pt.y;
+            int ks = self->m_cfg->keySize;
+            int trackOffsetY = 0;
+            if (self->m_cfg->showHistory && !self->m_cfg->keys.empty()) {
+                trackOffsetY = self->m_cfg->historyTrackH + self->m_cfg->historyTrackGap;
+            }
+            int winX = self->m_cfg->displayX;
+            int winY = self->m_cfg->displayY - trackOffsetY;
+
+            self->m_freeDragIdx = -1; // 默认拖拽窗口
+
+            // 检查是否点击到按键
+            for (int i = 0; i < (int)self->m_cfg->keys.size(); ++i) {
+                int kx = winX + self->m_cfg->keys[i].freeX;
+                int ky = winY + self->m_cfg->keys[i].freeY;
+                if (cx >= kx && cx < kx + ks && cy >= ky && cy < ky + ks) {
+                    self->m_freeDragIdx = i;
+                    self->m_dragOffset.x = cx - kx;
+                    self->m_dragOffset.y = cy - ky;
+                    break;
+                }
+            }
+            // 检查 Total 框
+            if (self->m_freeDragIdx == -1 && self->m_cfg->showSummary && !self->m_cfg->keys.empty()) {
+                int bx = winX + self->m_cfg->freeTotalX;
+                int by = winY + self->m_cfg->freeTotalY;
+                if (cx >= bx && cx < bx + ks && cy >= by && cy < by + ks) {
+                    self->m_freeDragIdx = -2; // Total
+                    self->m_dragOffset.x = cx - bx;
+                    self->m_dragOffset.y = cy - by;
+                }
+            }
+            // 检查 KPS 框
+            if (self->m_freeDragIdx == -1 && self->m_cfg->showKPS && !self->m_cfg->keys.empty()) {
+                int bx = winX + self->m_cfg->freeKPSX;
+                int by = winY + self->m_cfg->freeKPSY;
+                if (cx >= bx && cx < bx + ks && cy >= by && cy < by + ks) {
+                    self->m_freeDragIdx = -3; // KPS
+                    self->m_dragOffset.x = cx - bx;
+                    self->m_dragOffset.y = cy - by;
+                }
+            }
+            // 检查 BPM 框
+            if (self->m_freeDragIdx == -1 && self->m_cfg->showBPM && !self->m_cfg->keys.empty()) {
+                int bx = winX + self->m_cfg->freeBPMX;
+                int by = winY + self->m_cfg->freeBPMY;
+                if (cx >= bx && cx < bx + ks && cy >= by && cy < by + ks) {
+                    self->m_freeDragIdx = -4; // BPM
+                    self->m_dragOffset.x = cx - bx;
+                    self->m_dragOffset.y = cy - by;
+                }
+            }
+
+            if (self->m_freeDragIdx == -1) {
+                // 拖拽窗口整体
+                self->m_dragOffset.x = cx - self->m_cfg->displayX;
+                self->m_dragOffset.y = cy - (self->m_cfg->displayY - trackOffsetY);
+            }
+        } else {
+            // 常规模式：拖拽整体窗口
+            self->m_freeDragIdx = -1;
             self->m_dragOffset.x -= self->m_cfg->displayX;
             self->m_dragOffset.y -= self->m_cfg->displayY;
         }
         return 0;
+    }
 
     case WM_MOUSEMOVE:
         if (self->m_dragging && self->m_cfg) {
             POINT pt;
             GetCursorPos(&pt);
-            int newX = pt.x - self->m_dragOffset.x;
-            int newY = pt.y - self->m_dragOffset.y;
-            self->m_cfg->displayX = newX;
-            self->m_cfg->displayY = newY;
+            if (self->m_cfg->freeMode && self->m_freeDragIdx >= 0) {
+                // 拖拽单个按键
+                int newX = pt.x - self->m_dragOffset.x;
+                int newY = pt.y - self->m_dragOffset.y;
+                int trackOffsetY = 0;
+                if (self->m_cfg->showHistory && !self->m_cfg->keys.empty()) {
+                    trackOffsetY = self->m_cfg->historyTrackH + self->m_cfg->historyTrackGap;
+                }
+                int winX = self->m_cfg->displayX;
+                int winY = self->m_cfg->displayY - trackOffsetY;
+                int ks = self->m_cfg->keySize;
+                int areaW = self->m_cfg->freeAreaW;
+                int areaH = self->m_cfg->freeAreaH;
+                if (self->m_freeDragIdx < (int)self->m_cfg->keys.size()) {
+                    int fx = newX - winX;
+                    int fy = newY - winY;
+                    // 限制在区域内
+                    if (fx < 0) fx = 0;
+                    if (fx + ks > areaW) fx = areaW - ks;
+                    if (fy < 0) fy = 0;
+                    if (fy + ks > areaH) fy = areaH - ks;
+                    self->m_cfg->keys[self->m_freeDragIdx].freeX = fx;
+                    self->m_cfg->keys[self->m_freeDragIdx].freeY = fy;
+                }
+            } else if (self->m_cfg->freeMode && self->m_freeDragIdx == -2) {
+                int newX = pt.x - self->m_dragOffset.x;
+                int newY = pt.y - self->m_dragOffset.y;
+                int trackOffsetY = 0;
+                if (self->m_cfg->showHistory && !self->m_cfg->keys.empty()) {
+                    trackOffsetY = self->m_cfg->historyTrackH + self->m_cfg->historyTrackGap;
+                }
+                int winX = self->m_cfg->displayX;
+                int winY = self->m_cfg->displayY - trackOffsetY;
+                int ks = self->m_cfg->keySize;
+                int areaW = self->m_cfg->freeAreaW;
+                int areaH = self->m_cfg->freeAreaH;
+                int fx = newX - winX;
+                int fy = newY - winY;
+                if (fx < 0) fx = 0; if (fx + ks > areaW) fx = areaW - ks;
+                if (fy < 0) fy = 0; if (fy + ks > areaH) fy = areaH - ks;
+                self->m_cfg->freeTotalX = fx;
+                self->m_cfg->freeTotalY = fy;
+            } else if (self->m_cfg->freeMode && self->m_freeDragIdx == -3) {
+                int newX = pt.x - self->m_dragOffset.x;
+                int newY = pt.y - self->m_dragOffset.y;
+                int trackOffsetY = 0;
+                if (self->m_cfg->showHistory && !self->m_cfg->keys.empty()) {
+                    trackOffsetY = self->m_cfg->historyTrackH + self->m_cfg->historyTrackGap;
+                }
+                int winX = self->m_cfg->displayX;
+                int winY = self->m_cfg->displayY - trackOffsetY;
+                int ks = self->m_cfg->keySize;
+                int areaW = self->m_cfg->freeAreaW;
+                int areaH = self->m_cfg->freeAreaH;
+                int fx = newX - winX;
+                int fy = newY - winY;
+                if (fx < 0) fx = 0; if (fx + ks > areaW) fx = areaW - ks;
+                if (fy < 0) fy = 0; if (fy + ks > areaH) fy = areaH - ks;
+                self->m_cfg->freeKPSX = fx;
+                self->m_cfg->freeKPSY = fy;
+            } else if (self->m_cfg->freeMode && self->m_freeDragIdx == -4) {
+                int newX = pt.x - self->m_dragOffset.x;
+                int newY = pt.y - self->m_dragOffset.y;
+                int trackOffsetY = 0;
+                if (self->m_cfg->showHistory && !self->m_cfg->keys.empty()) {
+                    trackOffsetY = self->m_cfg->historyTrackH + self->m_cfg->historyTrackGap;
+                }
+                int winX = self->m_cfg->displayX;
+                int winY = self->m_cfg->displayY - trackOffsetY;
+                int ks = self->m_cfg->keySize;
+                int areaW = self->m_cfg->freeAreaW;
+                int areaH = self->m_cfg->freeAreaH;
+                int fx = newX - winX;
+                int fy = newY - winY;
+                if (fx < 0) fx = 0; if (fx + ks > areaW) fx = areaW - ks;
+                if (fy < 0) fy = 0; if (fy + ks > areaH) fy = areaH - ks;
+                self->m_cfg->freeBPMX = fx;
+                self->m_cfg->freeBPMY = fy;
+            } else {
+                // 拖拽整体窗口
+                self->m_cfg->displayX = pt.x - self->m_dragOffset.x;
+                self->m_cfg->displayY = pt.y - self->m_dragOffset.y;
+            }
         }
         return 0;
 
@@ -160,6 +307,7 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         if (self->m_dragging) {
             ReleaseCapture();
             self->m_dragging = false;
+            self->m_freeDragIdx = -1;
             if (self->m_cfg) {
                 const wchar_t* sp = self->m_configPath.empty()
                     ? L"KeyStateSetting.json" : self->m_configPath.c_str();

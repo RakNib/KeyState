@@ -24,6 +24,7 @@ public:
 
     void RefreshControls();
     void RebuildWindow();
+    void UpdateRecordStatus(bool recording, uint64_t startTime);
 
 private:
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
@@ -102,6 +103,8 @@ private:
     HWND m_swBox[6];
     // Chart 控件
     HWND m_chkChart, m_chkChartGrid;
+    HWND m_radioChartLine, m_radioChartScatter, m_radioChartBar;
+    HWND m_chkChartGradient;
     HWND m_trackChartTime, m_editChartTime;
     HWND m_trackChartW, m_editChartW;
     HWND m_trackChartH, m_editChartH;
@@ -114,6 +117,14 @@ private:
     HWND m_chkChartSnap;
     HWND m_trackChartSnapX, m_editChartSnapX;
     HWND m_trackChartSnapY, m_editChartSnapY;
+    // 自由模式
+    HWND m_radioNormalMode, m_radioFreeMode;
+    HWND m_trackFreeAreaW, m_editFreeAreaW;
+    HWND m_trackFreeAreaH, m_editFreeAreaH;
+    HWND m_chkFreeBoundary;
+    // 录制
+    HWND m_btnRecordHotkey;
+    HWND m_lblRecordStatus;
 
     HFONT m_hFont      = nullptr;
     int   m_scrollY    = 0;       // 滚动偏移

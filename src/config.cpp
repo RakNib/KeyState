@@ -189,6 +189,19 @@ bool AppConfig::Load(const wchar_t* filepath) {
     if (auto* v = root.Find(L"chartSnap"))      chartSnap   = v->bl;
     if (auto* v = root.Find(L"chartSnapOffsetX")) chartSnapOffsetX = (int)v->num;
     if (auto* v = root.Find(L"chartSnapOffsetY")) chartSnapOffsetY = (int)v->num;
+    if (auto* v = root.Find(L"chartType"))      chartType   = (int)v->num;
+    if (auto* v = root.Find(L"chartGradientFill")) chartGradientFill = v->bl;
+    if (auto* v = root.Find(L"freeMode"))       freeMode    = v->bl;
+    if (auto* v = root.Find(L"freeAreaW"))      freeAreaW   = (int)v->num;
+    if (auto* v = root.Find(L"freeAreaH"))      freeAreaH   = (int)v->num;
+    if (auto* v = root.Find(L"freeShowBoundary")) freeShowBoundary = v->bl;
+    if (auto* v = root.Find(L"freeTotalX"))     freeTotalX  = (int)v->num;
+    if (auto* v = root.Find(L"freeTotalY"))     freeTotalY  = (int)v->num;
+    if (auto* v = root.Find(L"freeKPSX"))       freeKPSX    = (int)v->num;
+    if (auto* v = root.Find(L"freeKPSY"))       freeKPSY    = (int)v->num;
+    if (auto* v = root.Find(L"freeBPMX"))       freeBPMX    = (int)v->num;
+    if (auto* v = root.Find(L"freeBPMY"))       freeBPMY    = (int)v->num;
+    if (auto* v = root.Find(L"recordingHotkeyVK")) recordingHotkeyVK = (int)v->num;
 
     // 解析 keys 数组
     if (auto* jkeys = root.Find(L"keys")) {
@@ -200,6 +213,8 @@ bool AppConfig::Load(const wchar_t* filepath) {
                 if (auto* v = jk.Find(L"keyCode")) kc.keyCode = (int)v->num;
                 if (auto* v = jk.Find(L"label"))   kc.label   = v->str;
                 if (auto* v = jk.Find(L"totalPresses")) kc.totalPresses = (uint64_t)v->num;
+                if (auto* v = jk.Find(L"freeX"))   kc.freeX   = (int)v->num;
+                if (auto* v = jk.Find(L"freeY"))   kc.freeY   = (int)v->num;
 
                 // 仅当 JSON 中有颜色对象时才更新（否则保留 KeyConfig 默认色）
                 auto applyColor = [&](const wchar_t* name, RgbaColor& dst) {
@@ -299,6 +314,19 @@ bool AppConfig::Save(const wchar_t* filepath) const {
     wBool(L"chartSnap", chartSnap);
     wInt(L"chartSnapOffsetX", chartSnapOffsetX);
     wInt(L"chartSnapOffsetY", chartSnapOffsetY);
+    wInt(L"chartType", chartType);
+    wBool(L"chartGradientFill", chartGradientFill);
+    wBool(L"freeMode", freeMode);
+    wInt(L"freeAreaW", freeAreaW);
+    wInt(L"freeAreaH", freeAreaH);
+    wBool(L"freeShowBoundary", freeShowBoundary);
+    wInt(L"freeTotalX", freeTotalX);
+    wInt(L"freeTotalY", freeTotalY);
+    wInt(L"freeKPSX", freeKPSX);
+    wInt(L"freeKPSY", freeKPSY);
+    wInt(L"freeBPMX", freeBPMX);
+    wInt(L"freeBPMY", freeBPMY);
+    wInt(L"recordingHotkeyVK", recordingHotkeyVK);
 
     // keys 数组
     WriteIndent(out, 1); out += L"\"keys\": [\n";
@@ -310,7 +338,9 @@ bool AppConfig::Save(const wchar_t* filepath) const {
         WriteColor(out, 3, L"colorFont",   kc.colorFont);   out += L",\n";
         WriteColor(out, 3, L"colorNormal", kc.colorNormal); out += L",\n";
         WriteColor(out, 3, L"colorPress",  kc.colorPress);  out += L",\n";
-        WriteIndent(out, 3); out += L"\"totalPresses\": " + std::to_wstring(kc.totalPresses);
+        WriteIndent(out, 3); out += L"\"totalPresses\": " + std::to_wstring(kc.totalPresses) + L",\n";
+        WriteIndent(out, 3); out += L"\"freeX\": " + std::to_wstring(kc.freeX) + L",\n";
+        WriteIndent(out, 3); out += L"\"freeY\": " + std::to_wstring(kc.freeY);
         out += L"\n";
         WriteIndent(out, 2); out += L"}";
         if (ki + 1 < keys.size()) out += L",";
