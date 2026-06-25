@@ -255,8 +255,10 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 int areaH = self->m_cfg->freeAreaH;
                 int fx = newX - winX;
                 int fy = newY - winY;
-                if (fx < 0) fx = 0; if (fx + ks > areaW) fx = areaW - ks;
-                if (fy < 0) fy = 0; if (fy + ks > areaH) fy = areaH - ks;
+                if (fx < 0) fx = 0;
+                if (fx + ks > areaW) fx = areaW - ks;
+                if (fy < 0) fy = 0;
+                if (fy + ks > areaH) fy = areaH - ks;
                 self->m_cfg->freeTotalX = fx;
                 self->m_cfg->freeTotalY = fy;
             } else if (self->m_cfg->freeMode && self->m_freeDragIdx == -3) {
@@ -273,8 +275,10 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 int areaH = self->m_cfg->freeAreaH;
                 int fx = newX - winX;
                 int fy = newY - winY;
-                if (fx < 0) fx = 0; if (fx + ks > areaW) fx = areaW - ks;
-                if (fy < 0) fy = 0; if (fy + ks > areaH) fy = areaH - ks;
+                if (fx < 0) fx = 0;
+                if (fx + ks > areaW) fx = areaW - ks;
+                if (fy < 0) fy = 0;
+                if (fy + ks > areaH) fy = areaH - ks;
                 self->m_cfg->freeKPSX = fx;
                 self->m_cfg->freeKPSY = fy;
             } else if (self->m_cfg->freeMode && self->m_freeDragIdx == -4) {
@@ -291,8 +295,10 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 int areaH = self->m_cfg->freeAreaH;
                 int fx = newX - winX;
                 int fy = newY - winY;
-                if (fx < 0) fx = 0; if (fx + ks > areaW) fx = areaW - ks;
-                if (fy < 0) fy = 0; if (fy + ks > areaH) fy = areaH - ks;
+                if (fx < 0) fx = 0;
+                if (fx + ks > areaW) fx = areaW - ks;
+                if (fy < 0) fy = 0;
+                if (fy + ks > areaH) fy = areaH - ks;
                 self->m_cfg->freeBPMX = fx;
                 self->m_cfg->freeBPMY = fy;
             } else {

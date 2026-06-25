@@ -104,6 +104,14 @@ struct AppConfig {
     int     freeBPMY       = 0;
     // 录制功能
     int     recordingHotkeyVK = 0;    // 录制快捷键 VK 码（0=未设置）
+    // 全局快捷键（VK 码，均使用 Ctrl+Shift+[VK] 组合）
+    int     hotkeySettingsVK      = 'K';  // 打开设置面板
+    int     hotkeyThemeEditorVK   = 'T';  // 打开主题编辑器
+    int     hotkeyToggleDisplayVK = 'M';  // 切换按键映射显示
+    int     hotkeyNextThemeVK     = 'N';  // 下一个预设方案
+    int     hotkeyPrevThemeVK     = 'P';  // 上一个预设方案
+    int     hotkeyToggleTrackVK   = 'H';  // 切换轨道显示
+    int     hotkeyToggleChartVK   = 'U';  // 切换图表显示
     std::vector<KeyConfig> keys;
 
     // 加载 / 保存 JSON 配置

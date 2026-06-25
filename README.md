@@ -1,6 +1,8 @@
-# KeyState V1.3
+# KeyState V1.4
 
 > Lightweight Windows real-time keyboard state overlay monitor
+
+![KeyState Preview](assets/preview.png)
 
 ---
 
@@ -57,8 +59,14 @@ Suitable for game streaming, key teaching, input method testing, keyboard showca
 | **Right-click window / tray** | Popup menu: Settings / Exit |
 | **Ctrl+Shift+K** | Global hotkey to open settings panel |
 | **Ctrl+Shift+T** | Global hotkey to open theme editor |
+| **Ctrl+Shift+M** | Global hotkey to toggle key mapping overlay show/hide |
+| **Ctrl+Shift+N** | Global hotkey to cycle to **next** theme preset |
+| **Ctrl+Shift+P** | Global hotkey to cycle to **previous** theme preset |
+| **Ctrl+Shift+H** | Global hotkey to toggle history track display |
+| **Ctrl+Shift+U** | Global hotkey to toggle KPS chart display |
 | **Settings panel X** | Hide settings panel |
 | **Settings panel scroll** | Fixed 700px height window, use mouse wheel or drag scrollbar |
+| **Settings → 快捷键设置** | Opens Hotkey Editor dialog to view & modify all global hotkeys |
 
 ---
 
@@ -139,6 +147,16 @@ src/
 ---
 
 ## Version History
+
+### V1.4 (2026-06)
+
+- Added: **5 new global hotkeys**
+  - **Ctrl+Shift+M** — Toggle key mapping overlay show/hide
+  - **Ctrl+Shift+N** — Cycle to next theme preset
+  - **Ctrl+Shift+P** — Cycle to previous theme preset
+  - **Ctrl+Shift+H** — Toggle history track display
+  - **Ctrl+Shift+U** — Toggle KPS chart display
+- Added: **Hotkey Editor** — new button at the bottom of Settings panel opens a dedicated dialog to view and modify all 7 global hotkeys in real time
 
 ### V1.3 (2026-06)
 

@@ -7,6 +7,7 @@
 #include "display_ui.h"
 class ChartUI;
 class ThemeEditor;
+class HotkeyEditor;
 class KeyStateManager;
 
 struct SwatchData { RgbaColor* color = nullptr; };
@@ -25,6 +26,8 @@ public:
     void RefreshControls();
     void RebuildWindow();
     void UpdateRecordStatus(bool recording, uint64_t startTime);
+    void CycleTheme(int direction);  // direction: 1=下一个, -1=上一个
+    void SetHotkeyEditor(HotkeyEditor* he) { m_hotkeyEditor = he; }
 
 private:
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
@@ -65,6 +68,7 @@ private:
     DisplayUI*    m_display     = nullptr;
     ChartUI*      m_chart       = nullptr;
     ThemeEditor*  m_themeEditor = nullptr;
+    HotkeyEditor* m_hotkeyEditor = nullptr;
     KeyStateManager* m_ksm      = nullptr;
     int           m_selectedKey = -1;
     std::wstring  m_configPath;

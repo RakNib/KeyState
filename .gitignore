@@ -5,5 +5,9 @@
 !/src/
 !/src/**
 
+# 保留资源文件
+!/assets/
+!/assets/**
+
 # 保留项目说明文件
 !/README.md

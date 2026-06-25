@@ -202,6 +202,13 @@ bool AppConfig::Load(const wchar_t* filepath) {
     if (auto* v = root.Find(L"freeBPMX"))       freeBPMX    = (int)v->num;
     if (auto* v = root.Find(L"freeBPMY"))       freeBPMY    = (int)v->num;
     if (auto* v = root.Find(L"recordingHotkeyVK")) recordingHotkeyVK = (int)v->num;
+    if (auto* v = root.Find(L"hotkeySettingsVK"))      hotkeySettingsVK      = (int)v->num;
+    if (auto* v = root.Find(L"hotkeyThemeEditorVK"))   hotkeyThemeEditorVK   = (int)v->num;
+    if (auto* v = root.Find(L"hotkeyToggleDisplayVK")) hotkeyToggleDisplayVK = (int)v->num;
+    if (auto* v = root.Find(L"hotkeyNextThemeVK"))     hotkeyNextThemeVK     = (int)v->num;
+    if (auto* v = root.Find(L"hotkeyPrevThemeVK"))     hotkeyPrevThemeVK     = (int)v->num;
+    if (auto* v = root.Find(L"hotkeyToggleTrackVK"))   hotkeyToggleTrackVK   = (int)v->num;
+    if (auto* v = root.Find(L"hotkeyToggleChartVK"))   hotkeyToggleChartVK   = (int)v->num;
 
     // 解析 keys 数组
     if (auto* jkeys = root.Find(L"keys")) {
@@ -327,6 +334,13 @@ bool AppConfig::Save(const wchar_t* filepath) const {
     wInt(L"freeBPMX", freeBPMX);
     wInt(L"freeBPMY", freeBPMY);
     wInt(L"recordingHotkeyVK", recordingHotkeyVK);
+    wInt(L"hotkeySettingsVK",      hotkeySettingsVK);
+    wInt(L"hotkeyThemeEditorVK",   hotkeyThemeEditorVK);
+    wInt(L"hotkeyToggleDisplayVK", hotkeyToggleDisplayVK);
+    wInt(L"hotkeyNextThemeVK",     hotkeyNextThemeVK);
+    wInt(L"hotkeyPrevThemeVK",     hotkeyPrevThemeVK);
+    wInt(L"hotkeyToggleTrackVK",   hotkeyToggleTrackVK);
+    wInt(L"hotkeyToggleChartVK",   hotkeyToggleChartVK);
 
     // keys 数组
     WriteIndent(out, 1); out += L"\"keys\": [\n";

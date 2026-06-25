@@ -12,6 +12,7 @@
 #include "chart_ui.h"
 #include "settings_ui.h"
 #include "theme_editor.h"
+#include "hotkey_ui.h"
 #include "lang.h"
 
 // 自定义消息
@@ -26,6 +27,7 @@ static DisplayUI       g_display;
 static ChartUI          g_chart;
 static SettingsUI      g_settings;
 static ThemeEditor     g_themeEditor;
+static HotkeyEditor    g_hotkeyEditor;
 
 static HINSTANCE       g_hInst       = nullptr;
 static HWND            g_hMainWnd    = nullptr;
@@ -191,18 +193,52 @@ static void ShowTrayMenu(HWND hwnd) {
     if (cmd == 2) { PostQuitMessage(0); }
 }
 
+// ========== 注册所有快捷键 ==========
+static void RegisterAllHotkeys(HWND hwnd) {
+    RegisterHotKey(hwnd, 1, MOD_CONTROL | MOD_SHIFT, g_config.hotkeySettingsVK);      // 设置面板
+    RegisterHotKey(hwnd, 2, MOD_CONTROL | MOD_SHIFT, g_config.hotkeyThemeEditorVK);   // 主题编辑器
+    RegisterHotKey(hwnd, 3, MOD_CONTROL | MOD_SHIFT, g_config.hotkeyToggleDisplayVK); // 切换按键映射显示
+    RegisterHotKey(hwnd, 4, MOD_CONTROL | MOD_SHIFT, g_config.hotkeyNextThemeVK);     // 下一个预设方案
+    RegisterHotKey(hwnd, 5, MOD_CONTROL | MOD_SHIFT, g_config.hotkeyPrevThemeVK);     // 上一个预设方案
+    RegisterHotKey(hwnd, 6, MOD_CONTROL | MOD_SHIFT, g_config.hotkeyToggleTrackVK);   // 切换轨道显示
+    RegisterHotKey(hwnd, 7, MOD_CONTROL | MOD_SHIFT, g_config.hotkeyToggleChartVK);   // 切换图表显示
+}
+
 // ========== 主窗口过程（隐藏窗口，仅用于消息泵和托盘） ==========
 static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
     case WM_CREATE:
         AddTrayIcon(hwnd);
-        RegisterHotKey(hwnd, 1, MOD_CONTROL | MOD_SHIFT, 'K');
-        RegisterHotKey(hwnd, 2, MOD_CONTROL | MOD_SHIFT, 'T');
+        RegisterAllHotkeys(hwnd);
         break;
 
     case WM_HOTKEY:
         if (wp == 1) g_settings.Show(true);
         if (wp == 2) g_themeEditor.Show(true);
+        if (wp == 3) {
+            // 切换按键映射悬浮窗显示/隐藏
+            bool vis = IsWindowVisible(g_display.GetHwnd());
+            g_display.Show(!vis);
+        }
+        if (wp == 4) {
+            // 下一个主题预设
+            g_settings.CycleTheme(1);
+        }
+        if (wp == 5) {
+            // 上一个主题预设
+            g_settings.CycleTheme(-1);
+        }
+        if (wp == 6) {
+            // 切换轨道显示
+            g_config.showHistory = !g_config.showHistory;
+            g_config.Save(GetConfigPath().c_str());
+        }
+        if (wp == 7) {
+            // 切换图表显示
+            g_config.showChart = !g_config.showChart;
+            g_chart.Show(g_config.showChart);
+            g_config.Save(GetConfigPath().c_str());
+        }
         break;
 
     case WM_TRAY_ICON:
@@ -212,6 +248,14 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
     case WM_OVERLAY_RCLICK:
         ShowTrayMenu(hwnd);
+        break;
+
+    case WM_APP + 5:  // 快捷键已变更，重新注册
+        UnregisterHotKey(hwnd, 1); UnregisterHotKey(hwnd, 2);
+        UnregisterHotKey(hwnd, 3); UnregisterHotKey(hwnd, 4);
+        UnregisterHotKey(hwnd, 5); UnregisterHotKey(hwnd, 6);
+        UnregisterHotKey(hwnd, 7);
+        RegisterAllHotkeys(hwnd);
         break;
 
     case WM_DESTROY:
@@ -362,6 +406,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     g_themeEditor.Create(hInstance, &g_config);
     g_themeEditor.SetConfigPath(themePath.c_str());
     g_themeEditor.SetSettings(&g_settings);
+
+    // 4.6 创建快捷键编辑器
+    g_hotkeyEditor.Create(hInstance, &g_config, g_hMainWnd);
+    g_settings.SetHotkeyEditor(&g_hotkeyEditor);
 
     // 5. 安装键盘钩子（同时检测录制快捷键）
     g_keyHook.Install([&exeDir](int keyCode, bool pressed) {

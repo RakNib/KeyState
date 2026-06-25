@@ -1,6 +1,7 @@
 ﻿#include "settings_ui.h"
 #include "chart_ui.h"
 #include "theme_editor.h"
+#include "hotkey_ui.h"
 #include "lang.h"
 
 // ========== 控件 ID ==========
@@ -126,6 +127,7 @@ enum {
     CID_TRACK_FREE_AREA_H = 225,
     CID_EDIT_FREE_AREA_H  = 226,
     CID_CHK_FREE_BOUNDARY = 227,
+    CID_BTN_HOTKEY_EDITOR = 228,
 };
 
 // 色块控件
@@ -488,6 +490,11 @@ void SettingsUI::OnCreate(HWND hwnd) {
     m_btnResetTotal = ctl(L"BUTTON", LANG(23), BS_PUSHBUTTON | WS_TABSTOP, CX + 300, y, 120, 32, CID_BTN_RESET_TOTAL);
     y += 44;
 
+    // 10. 快捷键设置
+    div(y);
+    ctl(L"BUTTON", L"快捷键设置", BS_PUSHBUTTON | WS_TABSTOP, CX, y, 140, 32, CID_BTN_HOTKEY_EDITOR);
+    y += 44;
+
     m_contentH = y + 40;
     SCROLLINFO si = {}; si.cbSize = sizeof(si); si.fMask = SIF_RANGE | SIF_PAGE; si.nMin = 0; si.nMax = m_contentH - 1; si.nPage = kVisibleH;
     SetScrollInfo(hwnd, SB_VERT, &si, TRUE);
@@ -579,6 +586,7 @@ void SettingsUI::OnCommand(WPARAM wp, LPARAM lp) {
     case CID_BTN_RESET_TOTAL: OnResetTotals(); break;
     case CID_BTN_RESET: OnResetDefaults(); break;
     case CID_BTN_THEMEEDIT: if (m_themeEditor) m_themeEditor->Show(true); break;
+    case CID_BTN_HOTKEY_EDITOR: if (m_hotkeyEditor) m_hotkeyEditor->Show(true); break;
     case CID_BTN_FONT: {
         if (!m_cfg) break;
         LOGFONTW lf = {};
@@ -1369,6 +1377,16 @@ void SettingsUI::OnSave() {
     if (m_display && m_cfg) {
         m_display->SetClickThrough(m_cfg->clickThrough);
     }
+}
+
+// ========== 循环切换主题预设 ==========
+void SettingsUI::CycleTheme(int direction) {
+    if (!m_cfg || m_cfg->keys.empty()) return;
+    int maxTheme = 15;
+    int newTheme = m_cfg->theme + direction;
+    if (newTheme < 0) newTheme = maxTheme;
+    if (newTheme > maxTheme) newTheme = 0;
+    ApplyTheme(newTheme);
 }
 
 // ========== 应用 Theme 预设 ==========
