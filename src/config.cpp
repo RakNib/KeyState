@@ -147,6 +147,12 @@ bool AppConfig::Load(const wchar_t* filepath) {
     rdBoxCol(L"totalBoxBg",totalBoxBg); rdBoxCol(L"totalBoxFc",totalBoxFc);
     rdBoxCol(L"kpsBoxBg",kpsBoxBg);   rdBoxCol(L"kpsBoxFc",kpsBoxFc);
     rdBoxCol(L"bpmBoxBg",bpmBoxBg);   rdBoxCol(L"bpmBoxFc",bpmBoxFc);
+    if (auto* v = root.Find(L"totalBoxW")) totalBoxW = (int)v->num;
+    if (auto* v = root.Find(L"totalBoxH")) totalBoxH = (int)v->num;
+    if (auto* v = root.Find(L"kpsBoxW"))   kpsBoxW   = (int)v->num;
+    if (auto* v = root.Find(L"kpsBoxH"))   kpsBoxH   = (int)v->num;
+    if (auto* v = root.Find(L"bpmBoxW"))   bpmBoxW   = (int)v->num;
+    if (auto* v = root.Find(L"bpmBoxH"))   bpmBoxH   = (int)v->num;
     if (auto* v = root.Find(L"showSummary"))    showSummary = v->bl;
     if (auto* v = root.Find(L"showHistory"))      showHistory = v->bl;
     if (auto* v = root.Find(L"historyTrackH"))    historyTrackH = (int)v->num;
@@ -195,6 +201,8 @@ bool AppConfig::Load(const wchar_t* filepath) {
     if (auto* v = root.Find(L"freeAreaW"))      freeAreaW   = (int)v->num;
     if (auto* v = root.Find(L"freeAreaH"))      freeAreaH   = (int)v->num;
     if (auto* v = root.Find(L"freeShowBoundary")) freeShowBoundary = v->bl;
+    if (auto* v = root.Find(L"freeGridSnap"))   freeGridSnap = v->bl;
+    if (auto* v = root.Find(L"freeGridSize"))   freeGridSize = (int)v->num;
     if (auto* v = root.Find(L"freeTotalX"))     freeTotalX  = (int)v->num;
     if (auto* v = root.Find(L"freeTotalY"))     freeTotalY  = (int)v->num;
     if (auto* v = root.Find(L"freeKPSX"))       freeKPSX    = (int)v->num;
@@ -222,6 +230,9 @@ bool AppConfig::Load(const wchar_t* filepath) {
                 if (auto* v = jk.Find(L"totalPresses")) kc.totalPresses = (uint64_t)v->num;
                 if (auto* v = jk.Find(L"freeX"))   kc.freeX   = (int)v->num;
                 if (auto* v = jk.Find(L"freeY"))   kc.freeY   = (int)v->num;
+                if (auto* v = jk.Find(L"customW")) kc.customW = (int)v->num;
+                if (auto* v = jk.Find(L"customH")) kc.customH = (int)v->num;
+
 
                 // 仅当 JSON 中有颜色对象时才更新（否则保留 KeyConfig 默认色）
                 auto applyColor = [&](const wchar_t* name, RgbaColor& dst) {
@@ -288,6 +299,9 @@ bool AppConfig::Save(const wchar_t* filepath) const {
     wBoxCol(L"totalBoxBg",totalBoxBg); wBoxCol(L"totalBoxFc",totalBoxFc);
     wBoxCol(L"kpsBoxBg",kpsBoxBg);   wBoxCol(L"kpsBoxFc",kpsBoxFc);
     wBoxCol(L"bpmBoxBg",bpmBoxBg);   wBoxCol(L"bpmBoxFc",bpmBoxFc);
+    wInt(L"totalBoxW", totalBoxW); wInt(L"totalBoxH", totalBoxH);
+    wInt(L"kpsBoxW",   kpsBoxW);   wInt(L"kpsBoxH",   kpsBoxH);
+    wInt(L"bpmBoxW",   bpmBoxW);   wInt(L"bpmBoxH",   bpmBoxH);
     wInt(L"fps", fps);
     wBool(L"clickThrough", clickThrough);
     wBool(L"alwaysOnTop", alwaysOnTop);
@@ -327,6 +341,8 @@ bool AppConfig::Save(const wchar_t* filepath) const {
     wInt(L"freeAreaW", freeAreaW);
     wInt(L"freeAreaH", freeAreaH);
     wBool(L"freeShowBoundary", freeShowBoundary);
+    wBool(L"freeGridSnap", freeGridSnap);
+    wInt(L"freeGridSize", freeGridSize);
     wInt(L"freeTotalX", freeTotalX);
     wInt(L"freeTotalY", freeTotalY);
     wInt(L"freeKPSX", freeKPSX);
@@ -354,7 +370,10 @@ bool AppConfig::Save(const wchar_t* filepath) const {
         WriteColor(out, 3, L"colorPress",  kc.colorPress);  out += L",\n";
         WriteIndent(out, 3); out += L"\"totalPresses\": " + std::to_wstring(kc.totalPresses) + L",\n";
         WriteIndent(out, 3); out += L"\"freeX\": " + std::to_wstring(kc.freeX) + L",\n";
-        WriteIndent(out, 3); out += L"\"freeY\": " + std::to_wstring(kc.freeY);
+        WriteIndent(out, 3); out += L"\"freeY\": " + std::to_wstring(kc.freeY) + L",\n";
+        WriteIndent(out, 3); out += L"\"customW\": " + std::to_wstring(kc.customW) + L",\n";
+        WriteIndent(out, 3); out += L"\"customH\": " + std::to_wstring(kc.customH) + L",\n";
+        WriteIndent(out, 3); out += L"\"customH\": " + std::to_wstring(kc.customH);
         out += L"\n";
         WriteIndent(out, 2); out += L"}";
         if (ki + 1 < keys.size()) out += L",";

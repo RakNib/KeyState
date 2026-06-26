@@ -31,6 +31,42 @@ LRESULT CALLBACK KeyboardHook::HookProc(int code, WPARAM wParam, LPARAM lParam) 
     return CallNextHookEx(nullptr, code, wParam, lParam);
 }
 
+// ========== MouseHook ==========
+
+bool MouseHook::Install(Callback cb) {
+    if (m_hook) return false;
+    m_callback  = std::move(cb);
+    s_instance  = this;
+    m_hook = SetWindowsHookExW(WH_MOUSE_LL, HookProc,
+                                GetModuleHandleW(nullptr), 0);
+    return m_hook != nullptr;
+}
+
+void MouseHook::Uninstall() {
+    if (m_hook) { UnhookWindowsHookEx(m_hook); m_hook = nullptr; }
+    s_instance = nullptr;
+}
+
+LRESULT CALLBACK MouseHook::HookProc(int code, WPARAM wParam, LPARAM lParam) {
+    if (code >= 0 && s_instance && s_instance->m_callback && !s_blocked) {
+        (void)lParam;
+        int vkCode = 0;
+        bool pressed = false;
+        switch (wParam) {
+            case WM_LBUTTONDOWN: pressed = true;  vkCode = VK_LBUTTON; break;
+            case WM_LBUTTONUP:   pressed = false; vkCode = VK_LBUTTON; break;
+            case WM_RBUTTONDOWN: pressed = true;  vkCode = VK_RBUTTON; break;
+            case WM_RBUTTONUP:   pressed = false; vkCode = VK_RBUTTON; break;
+            case WM_MBUTTONDOWN: pressed = true;  vkCode = VK_MBUTTON; break;
+            case WM_MBUTTONUP:   pressed = false; vkCode = VK_MBUTTON; break;
+        }
+        if (vkCode != 0) {
+            s_instance->m_callback(vkCode, pressed);
+        }
+    }
+    return CallNextHookEx(nullptr, code, wParam, lParam);
+}
+
 // ========== KeyStateManager ==========
 
 void KeyStateManager::Reset() { m_keys.clear(); }

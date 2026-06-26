@@ -2,6 +2,7 @@
 #include "chart_ui.h"
 #include "theme_editor.h"
 #include "hotkey_ui.h"
+#include "keyboard.h"
 #include "lang.h"
 
 // ========== 控件 ID ==========
@@ -128,6 +129,21 @@ enum {
     CID_EDIT_FREE_AREA_H  = 226,
     CID_CHK_FREE_BOUNDARY = 227,
     CID_BTN_HOTKEY_EDITOR = 228,
+    // V1.5: 自定义按键宽高 + 网格吸附 + 图标
+    CID_EDIT_KEY_W        = 229,
+    CID_EDIT_KEY_H        = 230,
+    CID_CHK_GRID_SNAP     = 231,
+    CID_TRACK_GRID_SIZE   = 232,
+    CID_EDIT_GRID_SIZE    = 233,
+    // V1.5: 数据框自定义宽高
+    CID_EDIT_TOTAL_BOX_W  = 237,
+    CID_EDIT_TOTAL_BOX_H  = 238,
+    CID_EDIT_KPS_BOX_W    = 239,
+    CID_EDIT_KPS_BOX_H    = 240,
+    CID_EDIT_BPM_BOX_W    = 241,
+    CID_EDIT_BPM_BOX_H    = 242,
+    // V1.5: 自定义按键名称
+    CID_EDIT_KEY_NAME     = 243,
 };
 
 // 色块控件
@@ -350,6 +366,12 @@ void SettingsUI::OnCreate(HWND hwnd) {
     { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg?m_cfg->freeAreaW:600); SetWindowTextW(m_editFreeAreaW,tb); }
     mks(CX, y, L"区域高度 (px)", CID_TRACK_FREE_AREA_H, CID_EDIT_FREE_AREA_H, m_trackFreeAreaH, m_editFreeAreaH, 100, 800, m_cfg ? m_cfg->freeAreaH : 400, 50);
     { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg?m_cfg->freeAreaH:400); SetWindowTextW(m_editFreeAreaH,tb); }
+    // V1.5: 自由模式网格吸附
+    m_chkGridSnap = ctl(L"BUTTON", LANG(108), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 100, 22, CID_CHK_GRID_SNAP);
+    if (m_cfg) SendMessageW(m_chkGridSnap, BM_SETCHECK, m_cfg->freeGridSnap ? BST_CHECKED : BST_UNCHECKED, 0);
+    y += 28;
+    mks(CX, y, LANG(109), CID_TRACK_GRID_SIZE, CID_EDIT_GRID_SIZE, m_trackGridSize, m_editGridSize, 4, 64, m_cfg ? m_cfg->freeGridSize : 20, 4);
+    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg?m_cfg->freeGridSize:20); SetWindowTextW(m_editGridSize,tb); }
     m_listKeys = ctl(L"LISTBOX", L"", LBS_NOTIFY | WS_VSCROLL | WS_BORDER | WS_TABSTOP, CX, y, 370, 100, CID_LIST_KEYS);
     m_btnAdd = ctl(L"BUTTON", LANG(16), BS_PUSHBUTTON | WS_TABSTOP, 400, y, 90, 30, CID_BTN_ADD);
     m_btnDel = ctl(L"BUTTON", LANG(17), BS_PUSHBUTTON | WS_TABSTOP, 400, y + 36, 90, 30, CID_BTN_DEL);
@@ -357,10 +379,21 @@ void SettingsUI::OnCreate(HWND hwnd) {
     lbl(LANG(18), CX, y, 360, 20); y += 26;
     lbl(LANG(19), CX, y, 120, 24); m_swFont = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 130, y, 36, 24, CID_SW_FONT); m_lblFont = lbl(L"", CX + 172, y, 200, 24); y += 32;
     lbl(LANG(20), CX, y, 120, 24); m_swNormal = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 130, y, 36, 24, CID_SW_NORMAL); m_lblNormal = lbl(L"", CX + 172, y, 200, 24); y += 32;
-    lbl(LANG(21), CX, y, 120, 24); m_swPress = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 130, y, 36, 24, CID_SW_PRESS); m_lblPress = lbl(L"", CX + 172, y, 200, 24); y += 44;
+    lbl(LANG(21), CX, y, 120, 24); m_swPress = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 130, y, 36, 24, CID_SW_PRESS); m_lblPress = lbl(L"", CX + 172, y, 200, 24); y += 32;
+    // V1.5: 自定义按键名称
+    lbl(L"名称:", CX, y, 40, 24);
+    m_editKeyName = ctl(L"EDIT", L"", ES_LEFT | WS_BORDER | WS_TABSTOP, CX + 44, y, 180, 22, CID_EDIT_KEY_NAME);
+    y += 30;
+    // V1.5: 每个按键的独立宽高
+    lbl(LANG(110), CX, y, 30, 24);
+    m_editKeyWidth = ctl(L"EDIT", L"64", ES_CENTER | ES_NUMBER | WS_BORDER | WS_TABSTOP, CX + 34, y, 50, 22, CID_EDIT_KEY_W);
+    lbl(L"px", CX + 88, y, 20, 24);
+    lbl(LANG(111), CX + 115, y, 30, 24);
+    m_editKeyHeight = ctl(L"EDIT", L"64", ES_CENTER | ES_NUMBER | WS_BORDER | WS_TABSTOP, CX + 149, y, 50, 22, CID_EDIT_KEY_H);
+    lbl(L"px", CX + 203, y, 20, 24);
+    y += 44;
     UpdateColorSwatches(-1);
 
-    mks(CX, y, LANG(8), CID_TRACK_KEYSIZE, CID_EDIT_KEYSIZE, m_trackKeySize, m_editKeySize, 30, 200, m_cfg->keySize, 10); SyncKeySizeEdit();
     mks(CX, y, LANG(9), CID_TRACK_SPACING, CID_EDIT_SPACING, m_trackSpacing, m_editSpacing, 0, 40, m_cfg->keySpacing, 4); SyncSpacingEdit();
     mks(CX, y, LANG(53), CID_TRACK_BORDER, CID_EDIT_BORDER, m_trackBorder, m_editBorder, 0, 8, m_cfg->keyBorderW, 1); SyncBorderEdit();
     mks(CX, y, LANG(54), CID_TRACK_OPACITY, CID_EDIT_OPACITY, m_trackOpacity, m_editOpacity, 10, 100, (int)(m_cfg->overlayOpacity * 100), 10); SyncOpacityEdit();
@@ -409,7 +442,21 @@ void SettingsUI::OnCreate(HWND hwnd) {
     };
     addSwRow(y, L"Total:", CID_SW_TOTALBG, CID_SW_TOTALFC, &m_cfg->totalBoxBg, &m_cfg->totalBoxFc); y += 30;
     addSwRow(y, L"KPS:", CID_SW_KPSBG, CID_SW_KPSFC, &m_cfg->kpsBoxBg, &m_cfg->kpsBoxFc); y += 30;
-    addSwRow(y, L"BPM:", CID_SW_BPMBG, CID_SW_BPMFC, &m_cfg->bpmBoxBg, &m_cfg->bpmBoxFc); y += 38;
+    addSwRow(y, L"BPM:", CID_SW_BPMBG, CID_SW_BPMFC, &m_cfg->bpmBoxBg, &m_cfg->bpmBoxFc); y += 30;
+    // V1.5: 数据框宽高
+    auto addBoxSize = [&](int ry, const wchar_t* label, HWND& edW, HWND& edH, int wId, int hId, int defW, int defH) {
+        lbl(label, CX, ry, 50, 24);
+        lbl(L"W:", CX + 52, ry, 24, 24);
+        edW = ctl(L"EDIT", L"64", ES_CENTER | ES_NUMBER | WS_BORDER, CX + 78, ry, 45, 22, wId);
+        lbl(L"px", CX + 126, ry, 20, 24);
+        lbl(L"H:", CX + 150, ry, 24, 24);
+        edH = ctl(L"EDIT", L"64", ES_CENTER | ES_NUMBER | WS_BORDER, CX + 176, ry, 45, 22, hId);
+        { wchar_t tb[16]; swprintf(tb,16,L"%d",defW); SetWindowTextW(edW,tb); }
+        { wchar_t tb[16]; swprintf(tb,16,L"%d",defH); SetWindowTextW(edH,tb); }
+    };
+    addBoxSize(y, L"Total:", m_editTotalBoxW, m_editTotalBoxH, 237, 238, m_cfg->totalBoxW, m_cfg->totalBoxH); y += 28;
+    addBoxSize(y, L"KPS:",   m_editKpsBoxW,   m_editKpsBoxH,   239, 240, m_cfg->kpsBoxW,   m_cfg->kpsBoxH);   y += 28;
+    addBoxSize(y, L"BPM:",   m_editBpmBoxW,   m_editBpmBoxH,   241, 242, m_cfg->bpmBoxW,   m_cfg->bpmBoxH);   y += 38;
 
     // 7. Chart
     div(y);
@@ -657,7 +704,20 @@ void SettingsUI::OnCommand(WPARAM wp, LPARAM lp) {
         break;
     case CID_CHK_FREE_BOUNDARY:
         if (m_cfg) {
-            m_cfg->freeShowBoundary = (SendMessageW(m_chkFreeBoundary, BM_GETCHECK, 0, 0) == BST_CHECKED);
+            bool showBoundary = (SendMessageW(m_chkFreeBoundary, BM_GETCHECK, 0, 0) == BST_CHECKED);
+            m_cfg->freeShowBoundary = showBoundary;
+            if (!showBoundary) {
+                // 关闭边界 → 也关闭网格吸附，固定当前布局
+                m_cfg->freeGridSnap = false;
+                if (m_chkGridSnap) SendMessageW(m_chkGridSnap, BM_SETCHECK, BST_UNCHECKED, 0);
+                if (m_chkGridSnap) EnableWindow(m_chkGridSnap, FALSE);
+                if (m_trackGridSize) EnableWindow(m_trackGridSize, FALSE);
+                if (m_editGridSize) EnableWindow(m_editGridSize, FALSE);
+            } else {
+                if (m_chkGridSnap) EnableWindow(m_chkGridSnap, TRUE);
+                if (m_trackGridSize) EnableWindow(m_trackGridSize, TRUE);
+                if (m_editGridSize) EnableWindow(m_editGridSize, TRUE);
+            }
             OnSave();
         }
         break;
@@ -708,6 +768,62 @@ void SettingsUI::OnCommand(WPARAM wp, LPARAM lp) {
             OnSave();
         }
         break;
+    case CID_EDIT_KEY_NAME:
+        if (code == EN_KILLFOCUS) {
+            if (m_cfg && m_selectedKey >= 0 && m_selectedKey < (int)m_cfg->keys.size()) {
+                wchar_t buf[64];
+                GetWindowTextW(m_editKeyName, buf, 64);
+                m_cfg->keys[m_selectedKey].label = buf;
+                OnSave();
+                RefreshKeyList();
+            }
+        }
+        break;
+    case CID_EDIT_KEY_W:
+        if (code == EN_KILLFOCUS) {
+            if (m_cfg && m_selectedKey >= 0 && m_selectedKey < (int)m_cfg->keys.size()) {
+                wchar_t buf[16];
+                GetWindowTextW(m_editKeyWidth, buf, 16);
+                int v = _wtoi(buf);
+                if (v < 0) v = 0;
+                if (v > 500) v = 500;
+                m_cfg->keys[m_selectedKey].customW = v;
+                OnSave();
+            }
+        }
+        break;
+    case CID_EDIT_KEY_H:
+        if (code == EN_KILLFOCUS) {
+            if (m_cfg && m_selectedKey >= 0 && m_selectedKey < (int)m_cfg->keys.size()) {
+                wchar_t buf[16];
+                GetWindowTextW(m_editKeyHeight, buf, 16);
+                int v = _wtoi(buf);
+                if (v < 0) v = 0;
+                if (v > 500) v = 500;
+                m_cfg->keys[m_selectedKey].customH = v;
+                OnSave();
+            }
+        }
+        break;
+    case CID_CHK_GRID_SNAP:
+        if (m_cfg) {
+            // 边界隐藏时无法启用网格
+            if (!m_cfg->freeShowBoundary && SendMessageW(m_chkGridSnap, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+                SendMessageW(m_chkGridSnap, BM_SETCHECK, BST_UNCHECKED, 0);
+                m_cfg->freeGridSnap = false;
+            } else {
+                m_cfg->freeGridSnap = (SendMessageW(m_chkGridSnap, BM_GETCHECK, 0, 0) == BST_CHECKED);
+            }
+            OnSave();
+        }
+        break;
+    // V1.5: 数据框宽高编辑框
+    case CID_EDIT_TOTAL_BOX_W: if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editTotalBoxW,b,16); int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->totalBoxW=v;OnSave();} } break;
+    case CID_EDIT_TOTAL_BOX_H: if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editTotalBoxH,b,16); int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->totalBoxH=v;OnSave();} } break;
+    case CID_EDIT_KPS_BOX_W:   if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editKpsBoxW,b,16);   int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->kpsBoxW=v;OnSave();} } break;
+    case CID_EDIT_KPS_BOX_H:   if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editKpsBoxH,b,16);   int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->kpsBoxH=v;OnSave();} } break;
+    case CID_EDIT_BPM_BOX_W:   if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editBpmBoxW,b,16);   int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->bpmBoxW=v;OnSave();} } break;
+    case CID_EDIT_BPM_BOX_H:   if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editBpmBoxH,b,16);   int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->bpmBoxH=v;OnSave();} } break;
     case CID_BTN_RECORD_HOTKEY: {
         if (!m_cfg) break;
         // 暂停钩子
@@ -746,11 +862,7 @@ void SettingsUI::OnCommand(WPARAM wp, LPARAM lp) {
 // ========== 滑块处理 ==========
 void SettingsUI::OnHScroll(WPARAM wp, LPARAM lp) {
     HWND hwndTrack = (HWND)lp;
-    if (hwndTrack == m_trackKeySize && m_cfg) {
-        m_cfg->keySize = (int)SendMessageW(m_trackKeySize, TBM_GETPOS, 0, 0);
-        SyncKeySizeEdit();
-        OnSave();
-    } else if (hwndTrack == m_trackSpacing && m_cfg) {
+    if (hwndTrack == m_trackSpacing && m_cfg) {
         m_cfg->keySpacing = (int)SendMessageW(m_trackSpacing, TBM_GETPOS, 0, 0);
         SyncSpacingEdit();
         OnSave();
@@ -831,6 +943,10 @@ void SettingsUI::OnHScroll(WPARAM wp, LPARAM lp) {
         m_cfg->freeAreaH = (int)SendMessageW(m_trackFreeAreaH, TBM_GETPOS, 0, 0);
         wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeAreaH); SetWindowTextW(m_editFreeAreaH,tb);
         OnSave();
+    } else if (hwndTrack == m_trackGridSize && m_cfg) {
+        m_cfg->freeGridSize = (int)SendMessageW(m_trackGridSize, TBM_GETPOS, 0, 0);
+        wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeGridSize); SetWindowTextW(m_editGridSize,tb);
+        OnSave();
     }
 }
 
@@ -889,14 +1005,6 @@ void SettingsUI::SyncSpacingEdit() {
         wchar_t buf[16];
         swprintf(buf, 16, L"%d", m_cfg->keySpacing);
         SetWindowTextW(m_editSpacing, buf);
-    }
-}
-
-void SettingsUI::SyncKeySizeEdit() {
-    if (m_cfg && m_editKeySize) {
-        wchar_t buf[16];
-        swprintf(buf, 16, L"%d", m_cfg->keySize);
-        SetWindowTextW(m_editKeySize, buf);
     }
 }
 
@@ -984,7 +1092,13 @@ void SettingsUI::RefreshKeyList() {
     SendMessageW(m_listKeys, LB_RESETCONTENT, 0, 0);
     for (auto& kc : m_cfg->keys) {
         wchar_t buf[128];
-        swprintf(buf, 128, L"%s  (VK:%d)", kc.label.c_str(), kc.keyCode);
+        int kw = kc.customW > 0 ? kc.customW : m_cfg->keySize;
+        int kh = kc.customH > 0 ? kc.customH : m_cfg->keySize;
+        if (kc.customW > 0 || kc.customH > 0) {
+            swprintf(buf, 128, L"%s  [%dx%d]  (VK:%d)", kc.label.c_str(), kw, kh, kc.keyCode);
+        } else {
+            swprintf(buf, 128, L"%s  (VK:%d)", kc.label.c_str(), kc.keyCode);
+        }
         SendMessageW(m_listKeys, LB_ADDSTRING, 0, (LPARAM)buf);
     }
     m_selectedKey = -1;
@@ -1016,6 +1130,13 @@ void SettingsUI::UpdateColorSwatches(int selIdx) {
         SetWindowTextW(m_lblNormal, buf);
         swprintf(buf, 64, L"RGB(%d,%d,%d)", kc.colorPress.r, kc.colorPress.g, kc.colorPress.b);
         SetWindowTextW(m_lblPress, buf);
+        // V1.5: 同步按键名称 + 宽高
+        SetWindowTextW(m_editKeyName, kc.label.c_str());
+        EnableWindow(m_editKeyName, TRUE);
+        wchar_t wb[16]; swprintf(wb, 16, L"%d", kc.customW); SetWindowTextW(m_editKeyWidth, wb);
+        wchar_t hb[16]; swprintf(hb, 16, L"%d", kc.customH); SetWindowTextW(m_editKeyHeight, hb);
+        EnableWindow(m_editKeyWidth, TRUE);
+        EnableWindow(m_editKeyHeight, TRUE);
     } else {
         auto setEmpty = [&](HWND sw, HWND lbl) {
             delete reinterpret_cast<SwatchData*>(GetWindowLongPtrW(sw, GWLP_USERDATA));
@@ -1026,6 +1147,13 @@ void SettingsUI::UpdateColorSwatches(int selIdx) {
         setEmpty(m_swFont,   m_lblFont);
         setEmpty(m_swNormal, m_lblNormal);
         setEmpty(m_swPress,  m_lblPress);
+        // V1.5: 清空名称 + 宽高
+        SetWindowTextW(m_editKeyName, L"");
+        EnableWindow(m_editKeyName, FALSE);
+        SetWindowTextW(m_editKeyWidth, L"64");
+        SetWindowTextW(m_editKeyHeight, L"64");
+        EnableWindow(m_editKeyWidth, FALSE);
+        EnableWindow(m_editKeyHeight, FALSE);
     }
 }
 
@@ -1041,6 +1169,7 @@ void SettingsUI::OnAddKey() {
 
     // 暂停全局钩子，避免按键被两边同时处理
     KeyboardHook::SetBlocked(true);
+    MouseHook::SetBlocked(true);
 
     int capturedVK = 0;
     MSG msg;
@@ -1053,6 +1182,10 @@ void SettingsUI::OnAddKey() {
             if (capturedVK == VK_ESCAPE) capturedVK = -1;
             break;
         }
+        // 检测鼠标按键
+        if (msg.message == WM_LBUTTONDOWN) { capturedVK = VK_LBUTTON; break; }
+        if (msg.message == WM_RBUTTONDOWN) { capturedVK = VK_RBUTTON; break; }
+        if (msg.message == WM_MBUTTONDOWN) { capturedVK = VK_MBUTTON; break; }
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
     }
@@ -1060,6 +1193,7 @@ void SettingsUI::OnAddKey() {
 
     // 恢复全局钩子
     KeyboardHook::SetBlocked(false);
+    MouseHook::SetBlocked(false);
 
     if (capturedVK <= 0) return;
 
@@ -1153,6 +1287,8 @@ void SettingsUI::OnAddKey() {
     kc.colorFont   = {235, 235, 245, 255};
     kc.colorNormal = {48,  48,  48,  200};
     kc.colorPress  = {255, 95,  95,  255};
+    kc.customW     = 64;
+    kc.customH     = 64;
     m_cfg->keys.push_back(kc);
     RefreshKeyList();
 }
@@ -1277,12 +1413,11 @@ void SettingsUI::OnSave() {
 
     // 同步编辑框 → 滑条
     wchar_t buf[16];
-
-    GetWindowTextW(m_editKeySize, buf, 16);
-    int ks = _wtoi(buf);
-    if (ks >= 30 && ks <= 200) {
-        m_cfg->keySize = ks;
-        SendMessageW(m_trackKeySize, TBM_SETPOS, TRUE, ks);
+    // 同步按键名称
+    if (m_editKeyName && m_selectedKey >= 0 && m_selectedKey < (int)m_cfg->keys.size()) {
+        wchar_t nb[64];
+        GetWindowTextW(m_editKeyName, nb, 64);
+        if (wcslen(nb) > 0) m_cfg->keys[m_selectedKey].label = nb;
     }
 
     GetWindowTextW(m_editSpacing, buf, 16);
@@ -1370,6 +1505,21 @@ void SettingsUI::OnSave() {
         int fh = _wtoi(buf);
         if (fh >= 100 && fh <= 800) { m_cfg->freeAreaH = fh; if (m_trackFreeAreaH) SendMessageW(m_trackFreeAreaH, TBM_SETPOS, TRUE, fh); }
     }
+    if (m_editGridSize) {
+        GetWindowTextW(m_editGridSize, buf, 16);
+        int gs = _wtoi(buf);
+        if (gs >= 4 && gs <= 64) { m_cfg->freeGridSize = gs; if (m_trackGridSize) SendMessageW(m_trackGridSize, TBM_SETPOS, TRUE, gs); }
+    }
+    // 数据框尺寸同步
+    auto syncBoxSize = [&](HWND ed, int& val) {
+        if (ed) { GetWindowTextW(ed, buf, 16); int v = _wtoi(buf); if (v >= 0 && v <= 500) val = v; }
+    };
+    syncBoxSize(m_editTotalBoxW, m_cfg->totalBoxW);
+    syncBoxSize(m_editTotalBoxH, m_cfg->totalBoxH);
+    syncBoxSize(m_editKpsBoxW,   m_cfg->kpsBoxW);
+    syncBoxSize(m_editKpsBoxH,   m_cfg->kpsBoxH);
+    syncBoxSize(m_editBpmBoxW,   m_cfg->bpmBoxW);
+    syncBoxSize(m_editBpmBoxH,   m_cfg->bpmBoxH);
 
     const wchar_t* savePath = m_configPath.empty() ? L"KeyStateSetting.json" : m_configPath.c_str();
     m_cfg->Save(savePath);
@@ -1454,7 +1604,6 @@ void SettingsUI::RefreshControls() {
     SendMessageW(m_radioLangJP, BM_SETCHECK, (l == 2) ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(m_chkThrough, BM_SETCHECK, m_cfg->clickThrough ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(m_chkTopMost, BM_SETCHECK, m_cfg->alwaysOnTop ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_trackKeySize, TBM_SETPOS, TRUE, m_cfg->keySize);
     SendMessageW(m_trackSpacing, TBM_SETPOS, TRUE, m_cfg->keySpacing);
     SendMessageW(m_trackHistoryH, TBM_SETPOS, TRUE, m_cfg->historyTrackH);
     SendMessageW(m_trackGrowSpd,  TBM_SETPOS, TRUE, m_cfg->historyGrowSpeed);
@@ -1474,7 +1623,6 @@ void SettingsUI::RefreshControls() {
             ? m_cfg->themePresets[i].name.c_str() : LANG(lid);
         SetWindowTextW(((HWND*)&m_radioTheme0)[i], name);
     }
-    SyncKeySizeEdit();
     // 更新字体名称显示
     if (m_btnFont) {
         HWND hLabel = GetWindow(m_btnFont, GW_HWNDNEXT);
@@ -1542,6 +1690,14 @@ void SettingsUI::RefreshControls() {
     // 自由模式下禁用轨道和图表吸附
     if (m_chkHistory) EnableWindow(m_chkHistory, m_cfg->freeMode ? FALSE : TRUE);
     if (m_chkChartSnap) EnableWindow(m_chkChartSnap, m_cfg->freeMode ? FALSE : TRUE);
+    // V1.5: 网格吸附（仅在显示边界时才可启用）
+    SendMessageW(m_chkGridSnap, BM_SETCHECK, m_cfg->freeGridSnap ? BST_CHECKED : BST_UNCHECKED, 0);
+    SendMessageW(m_trackGridSize, TBM_SETPOS, TRUE, m_cfg->freeGridSize);
+    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeGridSize); SetWindowTextW(m_editGridSize,tb); }
+    bool boundaryVis = m_cfg->freeShowBoundary;
+    if (m_chkGridSnap) EnableWindow(m_chkGridSnap, boundaryVis ? TRUE : FALSE);
+    if (m_trackGridSize) EnableWindow(m_trackGridSize, boundaryVis ? TRUE : FALSE);
+    if (m_editGridSize) EnableWindow(m_editGridSize, boundaryVis ? TRUE : FALSE);
 
     // Recording hotkey button
     if (m_cfg->recordingHotkeyVK != 0) {

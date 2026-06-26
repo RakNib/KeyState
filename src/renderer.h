@@ -38,12 +38,12 @@ private:
     static RgbaColor LerpColor(const RgbaColor& a, const RgbaColor& b, float t);
 
     void DrawKeyBox(Gdiplus::Graphics& g, const KeyConfig& kc, const KeyStateManager& ksm,
-                    int x, int y, int size, int radius, int borderW,
+                    int x, int y, int w, int h, int radius, int borderW,
                     bool showTotal, bool showKPS, int globalFontSize);
     void DrawHistoryTrack(Gdiplus::Graphics& g, const AppConfig& cfg, int keyCode,
                           const KeyStateManager& ksm, int x, int y, int keyW, int trackH,
                           const RgbaColor& pressColor);
-    void DrawDataBox(Gdiplus::Graphics& g, int x, int y, int size, int radius,
+    void DrawDataBox(Gdiplus::Graphics& g, int x, int y, int w, int h, int radius,
                      RgbaColor bg, RgbaColor fc, const wchar_t* symbol,
                      const wchar_t* value, int symbolSz = 0);
 

@@ -50,7 +50,6 @@ private:
     void OnSave();
     void ApplyTheme(int tid);
     void SyncSpacingEdit();
-    void SyncKeySizeEdit();
     void SyncHistoryHEdit();
     void SyncGrowSpdEdit();
     void SyncFloatSpdEdit();
@@ -77,7 +76,6 @@ private:
     HWND m_chkTotal, m_chkKPS, m_chkSummary, m_chkHistory, m_chkTrackLines, m_chkBPM, m_chkThrough, m_chkTopMost;
     HWND m_radioNote8, m_radioNote16, m_radioNote32, m_radioNote64;
     HWND m_radioLangCN, m_radioLangEN, m_radioLangJP;
-    HWND m_trackKeySize, m_editKeySize;
     HWND m_trackSpacing, m_editSpacing;
     HWND m_trackHistoryH, m_editHistoryH;
     HWND m_trackGrowSpd,  m_editGrowSpd;
@@ -105,6 +103,10 @@ private:
     void SwitchTab(int page);
     enum { TAB_DISPLAY=0, TAB_LAYOUT, TAB_THEME, TAB_CHART, TAB_KEYS, TAB_COUNT=5 };
     HWND m_swBox[6];
+    // V1.5: 数据框自定义宽高
+    HWND m_editTotalBoxW, m_editTotalBoxH;
+    HWND m_editKpsBoxW,   m_editKpsBoxH;
+    HWND m_editBpmBoxW,   m_editBpmBoxH;
     // Chart 控件
     HWND m_chkChart, m_chkChartGrid;
     HWND m_radioChartLine, m_radioChartScatter, m_radioChartBar;
@@ -121,11 +123,17 @@ private:
     HWND m_chkChartSnap;
     HWND m_trackChartSnapX, m_editChartSnapX;
     HWND m_trackChartSnapY, m_editChartSnapY;
+    // V1.5: 自定义按键名称 + 宽高
+    HWND m_editKeyName;
+    HWND m_editKeyWidth, m_editKeyHeight;
     // 自由模式
     HWND m_radioNormalMode, m_radioFreeMode;
     HWND m_trackFreeAreaW, m_editFreeAreaW;
     HWND m_trackFreeAreaH, m_editFreeAreaH;
     HWND m_chkFreeBoundary;
+    // V1.5: 自由模式网格吸附
+    HWND m_chkGridSnap;
+    HWND m_trackGridSize, m_editGridSize;
     // 录制
     HWND m_btnRecordHotkey;
     HWND m_lblRecordStatus;

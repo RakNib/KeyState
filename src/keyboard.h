@@ -47,6 +47,27 @@ private:
     static inline std::atomic<bool>   s_blocked  = false;
 };
 
+// 鼠标监听器 — 底层全局钩子（左/中/右键）
+class MouseHook {
+public:
+    using Callback = std::function<void(int keyCode, bool pressed)>;
+
+    bool Install(Callback cb);
+    void Uninstall();
+    bool IsInstalled() const { return m_hook != nullptr; }
+
+    // 暂停/恢复钩子回调（AddKey 捕获期间暂停）
+    static void SetBlocked(bool blocked) { s_blocked = blocked; }
+    static bool IsBlocked()              { return s_blocked; }
+
+private:
+    static LRESULT CALLBACK HookProc(int code, WPARAM wParam, LPARAM lParam);
+    HHOOK         m_hook   = nullptr;
+    Callback      m_callback;
+    static inline MouseHook*          s_instance = nullptr;
+    static inline std::atomic<bool>   s_blocked  = false;
+};
+
 // 按键状态管理器
 class KeyStateManager {
 public:

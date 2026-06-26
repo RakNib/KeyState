@@ -1,8 +1,9 @@
-# KeyState V1.4
+# KeyState V1.5
 
 > Lightweight Windows real-time keyboard state overlay monitor
 
 ![KeyState Preview](assets/preview.png)
+![KeyState Preview 2](assets/preview2.png)
 
 ---
 
@@ -38,15 +39,16 @@ Suitable for game streaming, key teaching, input method testing, keyboard showca
 |---------|----------|
 | **Language** | Chinese / English / Japanese |
 | **Basic Settings** | Show Total / Show KPS / Show Summary / Show History / Show BPM / Click Through / Always on Top |
-| **Layout** | Key Size (30-200px) + Key Spacing (0-40px) + Border Width (0-8px) |
+| **Layout** | Key Spacing (0-40px) + Border Width (0-8px) + Overlay Opacity |
 | **Track** | Track Height (20-600px) + Grow Speed + Float Speed + Block Max% + Track Gap + Background Alpha + Block Alpha + Border Lines toggle |
-| **Visual** | 16 theme presets (Custom + 15 built-in) + Font selector + Overlay Opacity |
-| **Key Mapping** | Press any key to capture and add / Delete (at least 1 required); 5-layer key name fallback |
-| **Appearance** | Adjust font color / normal background / press background (system color picker) |
+| **Visual** | 16 theme presets (Custom + 15 built-in) + Font selector |
+| **Key Mapping** | Press any key / mouse button to capture and add / Delete (at least 1 required); 5-layer key name fallback |
+| **Appearance (per-key)** | Custom label, width & height (64x64 default), font color / normal bg / press bg |
 | **BPM** | Note division (8th/16th/32nd/64th) + Merge window (0-100ms) |
-| **Summary Box Colors** | Independent background & text colors for Total / KPS / BPM boxes |
-| **Chart** | Show / Hide + Grid lines + Time range (1-30s) + Width/Height + Margins + Rounded corners + BG/Line colors |
+| **Summary Box Colors + Size** | Independent background & text colors + custom width & height for Total / KPS / BPM boxes |
+| **Chart** | Show / Hide + Grid lines + Time range (1-30s) + Width/Height + Margins + Rounded corners + BG/Line colors + Type (line/scatter/bar) + Gradient fill |
 | **Chart Snap** | Snap below key display with adjustable X/Y offset |
+| **Free Mode** | Freely draggable keys + Configurable area (W x H) + Grid Snap (default on, tied to boundary) + Grid size (4-64px) |
 | **Render FPS** | 25 / 45 / 60 / 90 / 120 FPS |
 
 ---
@@ -126,6 +128,7 @@ An independent BPM box displayed next to the summary box:
 | Rendering | GDI+ (anti-aliased vector graphics + text + premultiplied alpha) |
 | Window | Win32 API (WS_EX_LAYERED per-pixel transparency + WS_VSCROLL) |
 | Keyboard | WH_KEYBOARD_LL global hook (with IME virtual key filtering) |
+| Mouse    | WH_MOUSE_LL global hook (Left / Middle / Right buttons) |
 | Config | Custom JSON parser |
 | i18n | Chinese / English / Japanese string tables |
 
@@ -141,12 +144,36 @@ src/
 +-- chart_ui.h/cpp    # KPS real-time line chart overlay
 +-- settings_ui.h/cpp # Settings panel, color picker, Theme, scroll
 +-- theme_editor.h/cpp# Theme preset editor dialog
++-- hotkey_ui.h/cpp   # Hotkey editor dialog
 +-- lang.h/cpp        # Multi-language string table
 ```
 
 ---
 
 ## Version History
+
+### V1.5 (2026-06)
+
+- Added: **Mouse button support** — left / middle / right mouse buttons can now be added as key mappings
+  - Captured by clicking the mouse button during "Add Key"
+  - Full customization: label, colors, width/height, KPS/Total stats
+  - Uses `WH_MOUSE_LL` global hook alongside existing keyboard hook
+- Added: **Per-key custom labeling** — each key mapping's display name can be freely edited
+  - Configured in Settings → Key Mappings → select a key → edit the Name field
+  - List and overlay update in real time
+- Added: **Per-key custom width & height** (default 64x64)
+  - Configured in Settings → Key Mappings → select a key → Width/Height fields
+  - Works in both Normal Mode and Free Mode
+  - **Regular mode**: keys auto-arrange by actual width to avoid overlap; window height auto-expands for taller keys
+  - **Global key size slider removed** — each key is sized individually
+- Added: **Total / KPS / BPM box custom width & height** (default 64x64)
+  - Configured in Settings → Box Colors section → W:/H: fields for each box
+  - Works in both Normal Mode and Free Mode
+- Added: **Free Mode grid snap** — dragging elements snaps to a configurable grid
+  - **Enabled by default**, toggle in Settings → Free Mode → Grid Snap
+  - Grid size adjustable (4~64px) with a slider
+  - Visual grid lines drawn when boundary is visible
+  - **Hide boundary = lock layout**: toggling off "Show Boundary" hides boundary lines AND grid, disables snapping — fixing the current layout
 
 ### V1.4 (2026-06)
 

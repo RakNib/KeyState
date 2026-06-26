@@ -23,6 +23,7 @@
 static AppConfig       g_config;
 static KeyStateManager g_keyState;
 static KeyboardHook    g_keyHook;
+static MouseHook       g_mouseHook;
 static DisplayUI       g_display;
 static ChartUI          g_chart;
 static SettingsUI      g_settings;
@@ -411,27 +412,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     g_hotkeyEditor.Create(hInstance, &g_config, g_hMainWnd);
     g_settings.SetHotkeyEditor(&g_hotkeyEditor);
 
-    // 5. 安装键盘钩子（同时检测录制快捷键）
-    g_keyHook.Install([&exeDir](int keyCode, bool pressed) {
+    // 5. 安装键盘钩子 & 鼠标钩子
+    auto inputCallback = [&exeDir](int keyCode, bool pressed) {
         // 检测录制快捷键（仅在按下时触发）
         if (pressed && g_config.recordingHotkeyVK != 0 && keyCode == g_config.recordingHotkeyVK) {
             if (!g_recording) {
-                // 开始录制
                 g_recording = true;
                 g_recData.clear();
                 g_recStartTime = GetTickCount64();
-                // 更新标签列表（按键可能已变化）
                 g_recKeyLabels.clear();
                 for (auto& kc : g_config.keys)
                     g_recKeyLabels.push_back(kc.label);
             } else {
-                // 停止录制
                 g_recording = false;
                 SaveRecording(exeDir);
             }
             return;
         }
-
         // 只跟踪配置中的按键
         for (auto& kc : g_config.keys) {
             if (kc.keyCode == keyCode) {
@@ -439,7 +436,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
                 return;
             }
         }
-    });
+    };
+    g_keyHook.Install(inputCallback);
+    g_mouseHook.Install(inputCallback);
 
     // 6. 启动叠加层渲染线程
     std::thread renderThread(OverlayUpdateLoop);
@@ -455,6 +454,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     g_running = false;
     if (renderThread.joinable()) renderThread.join();
     g_keyHook.Uninstall();
+    g_mouseHook.Uninstall();
     SyncAndSave();
 
     // 如果录制未保存，保存

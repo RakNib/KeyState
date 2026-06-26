@@ -29,11 +29,14 @@ struct KeyConfig {
     // 自由模式位置
     int     freeX          = 0;
     int     freeY          = 0;
+    // 每个按键的独立宽高 (0 = 使用全局 keySize=64)
+    int     customW        = 64;
+    int     customH        = 64;
 };
 
 // 应用全局配置
 struct AppConfig {
-    int     version        = 3;
+    int     version        = 4;
     bool    showTotal      = true;
     bool    showKPS        = true;
     bool    showBPM        = false;   // 汇总框显示 BPM
@@ -56,6 +59,13 @@ struct AppConfig {
     RgbaColor kpsBoxFc   = {0,0,0,255};
     RgbaColor bpmBoxBg   = {255,255,255,210};
     RgbaColor bpmBoxFc   = {0,0,0,255};
+    // V1.5: 数据框自定义宽高 (0 = 使用 keySize)
+    int     totalBoxW     = 64;
+    int     totalBoxH     = 64;
+    int     kpsBoxW       = 64;
+    int     kpsBoxH       = 64;
+    int     bpmBoxW       = 64;
+    int     bpmBoxH       = 64;
     int     fps             = 90;      // 渲染帧率 (25/45/60/90/120)
     bool    clickThrough   = false;
     bool    alwaysOnTop    = true;
@@ -95,6 +105,9 @@ struct AppConfig {
     int     freeAreaW      = 600;    // 自由布局区域宽度
     int     freeAreaH      = 400;    // 自由布局区域高度
     bool    freeShowBoundary = true; // 显示区域边界线
+    // V1.5: 自由模式网格吸附
+    bool    freeGridSnap   = true;   // 是否启用网格吸附（默认开启）
+    int     freeGridSize   = 20;     // 网格大小 (px)
     // 自由模式下 Total/KPS/BPM 框位置
     int     freeTotalX     = 0;
     int     freeTotalY     = 0;

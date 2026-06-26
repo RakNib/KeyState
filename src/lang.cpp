@@ -221,6 +221,22 @@ static const wchar_t* g_strings[][3] = {
     {L"录制数据已保存到", L"Recording data saved to", L"録画データを保存しました"},
     // 105
     {L"未录制", L"Not Recording", L"未録画"},
+    // 106
+    {L"自定义宽度 (0=默认)", L"Custom Width (0=default)", L"カスタム幅 (0=デフォルト)"},
+    // 107
+    {L"自定义高度 (0=默认)", L"Custom Height (0=default)", L"カスタム高さ (0=デフォルト)"},
+    // 108
+    {L"网格吸附", L"Grid Snap", L"グリッドスナップ"},
+    // 109
+    {L"网格大小 (px)", L"Grid Size (px)", L"グリッドサイズ (px)"},
+    // 110
+    {L"宽:", L"W:", L"幅:"},
+    // 111
+    {L"高:", L"H:", L"高:"},
+    // 112
+    {L"宽 (0=默认)", L"W (0=default)", L"幅 (0=標準)"},
+    // 113
+    {L"高 (0=默认)", L"H (0=default)", L"高さ (0=標準)"},
 };
 
 const wchar_t* LANG(int key) {

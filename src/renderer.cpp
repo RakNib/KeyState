@@ -76,8 +76,9 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
     bool hasHistory  = cfg.showHistory && nKeys > 0;
     int  trackH      = hasHistory ? cfg.historyTrackH : 0;
     int  trackGap    = hasHistory ? cfg.historyTrackGap : 0;
-    // 额外框：Total(showSummary) + KPS(showKPS) + BPM(showBPM)
-    int  extraBoxes  = (cfg.showSummary?1:0) + (cfg.showKPS&&nKeys>0?1:0) + (cfg.showBPM&&nKeys>0?1:0);
+    // 数据框尺寸辅助（0=使用 keySize）
+    auto boxW = [&](int bw) -> int { return bw > 0 ? bw : ks; };
+    auto boxH = [&](int bh) -> int { return bh > 0 ? bh : ks; };
 
     // === 自由模式 vs 常规模式尺寸计算 ===
     if (cfg.freeMode) {
@@ -87,9 +88,38 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
         outW = faw + fm * 2;
         outH = fah + fm * 2;
     } else {
-        int  nBoxes      = nKeys + extraBoxes;
-        outW = nBoxes * ks + (nBoxes - 1) * gap + gap * 2;
-        outH = ks + gap * 2 + trackH + trackGap;
+        // 常规模式：按键按实际宽度顺序排列，避免重叠
+        int totalW = gap;
+        for (int i = 0; i < nKeys; ++i) {
+            int kw = (cfg.keys[i].customW > 0) ? cfg.keys[i].customW : ks;
+            totalW += kw + gap;
+        }
+        // 数据框使用自定义宽高
+        auto boxW = [&](int bw) -> int { return bw > 0 ? bw : ks; };
+        int boxOrder = 0;
+        if (cfg.showSummary && nKeys > 0) {
+            totalW += boxW(cfg.totalBoxW) + (boxOrder > 0 ? gap : gap);
+            boxOrder++;
+        }
+        if (cfg.showKPS && nKeys > 0) {
+            totalW += boxW(cfg.kpsBoxW) + gap;
+            boxOrder++;
+        }
+        if (cfg.showBPM && nKeys > 0) {
+            totalW += boxW(cfg.bpmBoxW) + gap;
+            boxOrder++;
+        }
+        // 常规模式高度：取所有元素的最大高度撑开窗口
+        int maxElemH = ks;
+        for (int i = 0; i < nKeys; ++i) {
+            int kh = (cfg.keys[i].customH > 0) ? cfg.keys[i].customH : ks;
+            if (kh > maxElemH) maxElemH = kh;
+        }
+        if (cfg.showSummary && nKeys > 0) { int bh = boxH(cfg.totalBoxH); if (bh > maxElemH) maxElemH = bh; }
+        if (cfg.showKPS   && nKeys > 0) { int bh = boxH(cfg.kpsBoxH);   if (bh > maxElemH) maxElemH = bh; }
+        if (cfg.showBPM   && nKeys > 0) { int bh = boxH(cfg.bpmBoxH);   if (bh > maxElemH) maxElemH = bh; }
+        outW = totalW;
+        outH = maxElemH + gap * 2 + trackH + trackGap;
     }
 
     Gdiplus::Bitmap bmp(outW, outH, PixelFormat32bppARGB);
@@ -145,12 +175,14 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
 
     int keyY = trackH + gap + trackGap; // 按键框 Y 偏移（轨道 + 间距）
 
-    // 先绘制轨道（在按键背景层之下）
+    // 先绘制轨道（在按键背景层之下，按实际宽度顺序排列）
     if (hasHistory && !cfg.freeMode) {
+        int curHx = gap;
         for (int i = 0; i < nKeys; ++i) {
-            int tx = gap + i * (ks + gap);
-            DrawHistoryTrack(g, cfg, cfg.keys[i].keyCode, ksm, tx, gap, ks, trackH,
+            int kw = (cfg.keys[i].customW > 0) ? cfg.keys[i].customW : ks;
+            DrawHistoryTrack(g, cfg, cfg.keys[i].keyCode, ksm, curHx, gap, kw, trackH,
                              cfg.keys[i].colorPress);
+            curHx += kw + gap;
         }
     }
 
@@ -175,83 +207,117 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
                 nullptr, &labelBrush);
         }
 
-        // 限制每个元素在区域内绘制
-        auto clampVal = [&](int v) -> int {
+        // 获取按键的实际宽高（自定义或全局）
+        auto keyW = [&](int idx) -> int {
+            int w = cfg.keys[idx].customW;
+            return (w > 0) ? w : ks;
+        };
+        auto keyH = [&](int idx) -> int {
+            int h = cfg.keys[idx].customH;
+            return (h > 0) ? h : ks;
+        };
+
+        // 绘制网格（边界显示 && 网格吸附启用时）
+        if (cfg.freeShowBoundary && cfg.freeGridSnap && cfg.freeGridSize > 4) {
+            int gs = cfg.freeGridSize;
+            Gdiplus::Pen gridPen(Gdiplus::Color(25, 200, 200, 200), 1.0f);
+            for (int gx = margin; gx <= margin + areaW; gx += gs)
+                g.DrawLine(&gridPen, gx, margin, gx, margin + areaH);
+            for (int gy = margin; gy <= margin + areaH; gy += gs)
+                g.DrawLine(&gridPen, margin, gy, margin + areaW, gy);
+        }
+
+        // 限制每个元素在区域内绘制（使用自定义尺寸）
+        auto clampVal = [&](int v, int kw) -> int {
             if (v < 0) return 0;
-            if (v + ks > areaW) return areaW - ks;
+            if (v + kw > areaW) return areaW - kw;
             return v;
         };
-        auto clampValH = [&](int v) -> int {
+        auto clampValH = [&](int v, int kh) -> int {
             if (v < 0) return 0;
-            if (v + ks > areaH) return areaH - ks;
+            if (v + kh > areaH) return areaH - kh;
             return v;
         };
 
         for (int i = 0; i < nKeys; ++i) {
-            int cx = clampVal(cfg.keys[i].freeX);
-            int cy = clampValH(cfg.keys[i].freeY);
+            int kw = keyW(i), kh = keyH(i);
+            int cx = clampVal(cfg.keys[i].freeX, kw);
+            int cy = clampValH(cfg.keys[i].freeY, kh);
             DrawKeyBox(g, cfg.keys[i], ksm,
                        cx + margin, cy + margin,
-                       ks, cfg.keyRadius, cfg.keyBorderW,
+                       kw, kh, cfg.keyRadius, cfg.keyBorderW,
                        cfg.showTotal, cfg.showKPS, cfg.keyFontSize);
         }
         wchar_t buf[32];
 
         if (cfg.showSummary && nKeys > 0) {
-            int cx = clampVal(cfg.freeTotalX);
-            int cy = clampValH(cfg.freeTotalY);
+            int bw = boxW(cfg.totalBoxW), bh = boxH(cfg.totalBoxH);
+            int cx = clampVal(cfg.freeTotalX, bw);
+            int cy = clampValH(cfg.freeTotalY, bh);
             swprintf(buf, 32, L"%llu", sumTotal);
-            DrawDataBox(g, cx + margin, cy + margin, ks, cfg.keyRadius,
+            DrawDataBox(g, cx + margin, cy + margin, bw, bh, cfg.keyRadius,
                         cfg.totalBoxBg, cfg.totalBoxFc, buf, L"Total");
         }
         if (cfg.showKPS && nKeys > 0) {
-            int cx = clampVal(cfg.freeKPSX);
-            int cy = clampValH(cfg.freeKPSY);
+            int bw = boxW(cfg.kpsBoxW), bh = boxH(cfg.kpsBoxH);
+            int cx = clampVal(cfg.freeKPSX, bw);
+            int cy = clampValH(cfg.freeKPSY, bh);
             swprintf(buf, 32, L"%d", (int)sumKPS);
-            DrawDataBox(g, cx + margin, cy + margin, ks, cfg.keyRadius,
+            DrawDataBox(g, cx + margin, cy + margin, bw, bh, cfg.keyRadius,
                         cfg.kpsBoxBg, cfg.kpsBoxFc, buf, L"KPS/s");
         }
         if (cfg.showBPM && nKeys > 0) {
-            int cx = clampVal(cfg.freeBPMX);
-            int cy = clampValH(cfg.freeBPMY);
+            int bw = boxW(cfg.bpmBoxW), bh = boxH(cfg.bpmBoxH);
+            int cx = clampVal(cfg.freeBPMX, bw);
+            int cy = clampValH(cfg.freeBPMY, bh);
             swprintf(buf, 32, L"%d", (int)(bpmKPS * 240.0 / cfg.bpmNoteDiv));
             wchar_t sub[32];
             swprintf(sub, 32, L"BPM | %d", cfg.bpmNoteDiv);
-            DrawDataBox(g, cx + margin, cy + margin, ks, cfg.keyRadius,
+            DrawDataBox(g, cx + margin, cy + margin, bw, bh, cfg.keyRadius,
                         cfg.bpmBoxBg, cfg.bpmBoxFc, buf, sub);
         }
     } else {
-        // === 常规模式渲染 ===
+        // === 常规模式渲染（按实际宽度顺序排列，避免重叠） ===
+        int curX = gap;
         for (int i = 0; i < nKeys; ++i) {
-            int x = gap + i * (ks + gap);
-            DrawKeyBox(g, cfg.keys[i], ksm, x, keyY, ks, cfg.keyRadius, cfg.keyBorderW,
+            int kw = ks, kh = ks;
+            if (cfg.keys[i].customW > 0) kw = cfg.keys[i].customW;
+            if (cfg.keys[i].customH > 0) kh = cfg.keys[i].customH;
+            DrawKeyBox(g, cfg.keys[i], ksm, curX, keyY, kw, kh, cfg.keyRadius, cfg.keyBorderW,
                        cfg.showTotal, cfg.showKPS, cfg.keyFontSize);
+            curX += kw + gap;
         }
 
-        // 追加数据框
+        // 追加数据框（在按键之后，使用自定义宽高）
         int extraIdx = 0;
         wchar_t buf[32];
 
         if (cfg.showSummary && nKeys > 0) {
-            int sx = gap + (nKeys + extraIdx) * (ks + gap);
+            int bw = boxW(cfg.totalBoxW);
+            int sx = curX + extraIdx * (bw + gap);
             swprintf(buf, 32, L"%llu", sumTotal);
-            DrawDataBox(g, sx, keyY, ks, cfg.keyRadius, cfg.totalBoxBg, cfg.totalBoxFc, buf, L"Total");
+            DrawDataBox(g, sx, keyY, bw, boxH(cfg.totalBoxH), cfg.keyRadius,
+                        cfg.totalBoxBg, cfg.totalBoxFc, buf, L"Total");
             extraIdx++;
         }
 
         if (cfg.showKPS && nKeys > 0) {
-            int sx = gap + (nKeys + extraIdx) * (ks + gap);
+            int bw = boxW(cfg.kpsBoxW);
+            int sx = curX + extraIdx * (bw + gap);
             swprintf(buf, 32, L"%d", (int)sumKPS);
-            DrawDataBox(g, sx, keyY, ks, cfg.keyRadius, cfg.kpsBoxBg, cfg.kpsBoxFc, buf, L"KPS/s");
+            DrawDataBox(g, sx, keyY, bw, boxH(cfg.kpsBoxH), cfg.keyRadius,
+                        cfg.kpsBoxBg, cfg.kpsBoxFc, buf, L"KPS/s");
             extraIdx++;
         }
 
         if (cfg.showBPM && nKeys > 0) {
-            int sx = gap + (nKeys + extraIdx) * (ks + gap);
+            int bw = boxW(cfg.bpmBoxW);
+            int sx = curX + extraIdx * (bw + gap);
             swprintf(buf, 32, L"%d", (int)(bpmKPS * 240.0 / cfg.bpmNoteDiv));
             wchar_t sub[32];
             swprintf(sub, 32, L"BPM | %d", cfg.bpmNoteDiv);
-            DrawDataBox(g, sx, keyY, ks, cfg.keyRadius, cfg.bpmBoxBg, cfg.bpmBoxFc, buf, sub);
+            DrawDataBox(g, sx, keyY, bw, boxH(cfg.bpmBoxH), cfg.keyRadius,
+                        cfg.bpmBoxBg, cfg.bpmBoxFc, buf, sub);
             extraIdx++;
         }
     }
@@ -298,7 +364,7 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
 // ========== 绘制单个按键框 ==========
 void Renderer::DrawKeyBox(Gdiplus::Graphics& g, const KeyConfig& kc,
                            const KeyStateManager& ksm,
-                           int x, int y, int size, int radius, int borderW,
+                           int x, int y, int w, int h, int radius, int borderW,
                            bool showTotal, bool showKPS, int globalFontSize) {
     bool pressed = ksm.IsDown(kc.keyCode);
 
@@ -309,7 +375,6 @@ void Renderer::DrawKeyBox(Gdiplus::Graphics& g, const KeyConfig& kc,
     RgbaColor curBg   = LerpColor(kc.colorNormal, kc.colorPress, t);
     RgbaColor curFont = kc.colorFont; // 字体颜色不变
 
-    int w = size, h = size;
     int bx = x, by = y; // 框不移动不缩放
     int r  = radius;
     if (r * 2 > w) r = w / 2;
@@ -402,10 +467,10 @@ void Renderer::DrawKeyBox(Gdiplus::Graphics& g, const KeyConfig& kc,
 }
 
 // ========== 通用数据框 ==========
-void Renderer::DrawDataBox(Gdiplus::Graphics& g, int x, int y, int size, int radius,
+void Renderer::DrawDataBox(Gdiplus::Graphics& g, int x, int y, int w, int h, int radius,
                             RgbaColor bg, RgbaColor fc, const wchar_t* symbol,
                             const wchar_t* value, int /*unused*/) {
-    int w = size, h = size, bx = x, by = y, r = radius;
+    int bx = x, by = y, r = radius;
     if (r * 2 > w) r = w / 2;
     struct RR { Gdiplus::GraphicsPath p; RR(int px,int py,int pw,int ph,int r) {
         p.AddArc(px,py,r*2,r*2,180,90); p.AddArc(px+pw-r*2,py,r*2,r*2,270,90);

@@ -157,11 +157,13 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
             self->m_freeDragIdx = -1; // 默认拖拽窗口
 
-            // 检查是否点击到按键
+            // 检查是否点击到按键（使用自定义宽高）
             for (int i = 0; i < (int)self->m_cfg->keys.size(); ++i) {
+                int kw = (self->m_cfg->keys[i].customW > 0) ? self->m_cfg->keys[i].customW : ks;
+                int kh = (self->m_cfg->keys[i].customH > 0) ? self->m_cfg->keys[i].customH : ks;
                 int kx = winX + self->m_cfg->keys[i].freeX;
                 int ky = winY + self->m_cfg->keys[i].freeY;
-                if (cx >= kx && cx < kx + ks && cy >= ky && cy < ky + ks) {
+                if (cx >= kx && cx < kx + kw && cy >= ky && cy < ky + kh) {
                     self->m_freeDragIdx = i;
                     self->m_dragOffset.x = cx - kx;
                     self->m_dragOffset.y = cy - ky;
@@ -170,9 +172,11 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             }
             // 检查 Total 框
             if (self->m_freeDragIdx == -1 && self->m_cfg->showSummary && !self->m_cfg->keys.empty()) {
+                int bw = self->m_cfg->totalBoxW > 0 ? self->m_cfg->totalBoxW : ks;
+                int bh = self->m_cfg->totalBoxH > 0 ? self->m_cfg->totalBoxH : ks;
                 int bx = winX + self->m_cfg->freeTotalX;
                 int by = winY + self->m_cfg->freeTotalY;
-                if (cx >= bx && cx < bx + ks && cy >= by && cy < by + ks) {
+                if (cx >= bx && cx < bx + bw && cy >= by && cy < by + bh) {
                     self->m_freeDragIdx = -2; // Total
                     self->m_dragOffset.x = cx - bx;
                     self->m_dragOffset.y = cy - by;
@@ -180,9 +184,11 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             }
             // 检查 KPS 框
             if (self->m_freeDragIdx == -1 && self->m_cfg->showKPS && !self->m_cfg->keys.empty()) {
+                int bw = self->m_cfg->kpsBoxW > 0 ? self->m_cfg->kpsBoxW : ks;
+                int bh = self->m_cfg->kpsBoxH > 0 ? self->m_cfg->kpsBoxH : ks;
                 int bx = winX + self->m_cfg->freeKPSX;
                 int by = winY + self->m_cfg->freeKPSY;
-                if (cx >= bx && cx < bx + ks && cy >= by && cy < by + ks) {
+                if (cx >= bx && cx < bx + bw && cy >= by && cy < by + bh) {
                     self->m_freeDragIdx = -3; // KPS
                     self->m_dragOffset.x = cx - bx;
                     self->m_dragOffset.y = cy - by;
@@ -190,9 +196,11 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             }
             // 检查 BPM 框
             if (self->m_freeDragIdx == -1 && self->m_cfg->showBPM && !self->m_cfg->keys.empty()) {
+                int bw = self->m_cfg->bpmBoxW > 0 ? self->m_cfg->bpmBoxW : ks;
+                int bh = self->m_cfg->bpmBoxH > 0 ? self->m_cfg->bpmBoxH : ks;
                 int bx = winX + self->m_cfg->freeBPMX;
                 int by = winY + self->m_cfg->freeBPMY;
-                if (cx >= bx && cx < bx + ks && cy >= by && cy < by + ks) {
+                if (cx >= bx && cx < bx + bw && cy >= by && cy < by + bh) {
                     self->m_freeDragIdx = -4; // BPM
                     self->m_dragOffset.x = cx - bx;
                     self->m_dragOffset.y = cy - by;
@@ -217,88 +225,76 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         if (self->m_dragging && self->m_cfg) {
             POINT pt;
             GetCursorPos(&pt);
-            if (self->m_cfg->freeMode && self->m_freeDragIdx >= 0) {
-                // 拖拽单个按键
-                int newX = pt.x - self->m_dragOffset.x;
-                int newY = pt.y - self->m_dragOffset.y;
+            // 网格吸附辅助函数（仅边界显示时生效，隐藏即固定布局）
+            auto snapToGrid = [&](int& v) {
+                if (self->m_cfg->freeShowBoundary && self->m_cfg->freeGridSnap && self->m_cfg->freeGridSize > 4) {
+                    int gs = self->m_cfg->freeGridSize;
+                    v = ((v + gs / 2) / gs) * gs;
+                }
+            };
+            auto calcFreePos = [&](int rawX, int rawY, int& fx, int& fy) {
                 int trackOffsetY = 0;
                 if (self->m_cfg->showHistory && !self->m_cfg->keys.empty()) {
                     trackOffsetY = self->m_cfg->historyTrackH + self->m_cfg->historyTrackGap;
                 }
                 int winX = self->m_cfg->displayX;
                 int winY = self->m_cfg->displayY - trackOffsetY;
-                int ks = self->m_cfg->keySize;
+                fx = rawX - winX;
+                fy = rawY - winY;
+                snapToGrid(fx);
+                snapToGrid(fy);
+            };
+            auto clampFree = [&](int& fx, int& fy, int elemW, int elemH) {
                 int areaW = self->m_cfg->freeAreaW;
                 int areaH = self->m_cfg->freeAreaH;
+                if (fx < 0) fx = 0;
+                if (fx + elemW > areaW) fx = areaW - elemW;
+                if (fy < 0) fy = 0;
+                if (fy + elemH > areaH) fy = areaH - elemH;
+            };
+
+            if (self->m_cfg->freeMode && self->m_freeDragIdx >= 0) {
+                // 拖拽单个按键
+                int newX = pt.x - self->m_dragOffset.x;
+                int newY = pt.y - self->m_dragOffset.y;
+                int ks = self->m_cfg->keySize;
                 if (self->m_freeDragIdx < (int)self->m_cfg->keys.size()) {
-                    int fx = newX - winX;
-                    int fy = newY - winY;
-                    // 限制在区域内
-                    if (fx < 0) fx = 0;
-                    if (fx + ks > areaW) fx = areaW - ks;
-                    if (fy < 0) fy = 0;
-                    if (fy + ks > areaH) fy = areaH - ks;
+                    int kw = (self->m_cfg->keys[self->m_freeDragIdx].customW > 0) ? self->m_cfg->keys[self->m_freeDragIdx].customW : ks;
+                    int kh = (self->m_cfg->keys[self->m_freeDragIdx].customH > 0) ? self->m_cfg->keys[self->m_freeDragIdx].customH : ks;
+                    int fx, fy;
+                    calcFreePos(newX, newY, fx, fy);
+                    clampFree(fx, fy, kw, kh);
                     self->m_cfg->keys[self->m_freeDragIdx].freeX = fx;
                     self->m_cfg->keys[self->m_freeDragIdx].freeY = fy;
                 }
             } else if (self->m_cfg->freeMode && self->m_freeDragIdx == -2) {
                 int newX = pt.x - self->m_dragOffset.x;
                 int newY = pt.y - self->m_dragOffset.y;
-                int trackOffsetY = 0;
-                if (self->m_cfg->showHistory && !self->m_cfg->keys.empty()) {
-                    trackOffsetY = self->m_cfg->historyTrackH + self->m_cfg->historyTrackGap;
-                }
-                int winX = self->m_cfg->displayX;
-                int winY = self->m_cfg->displayY - trackOffsetY;
-                int ks = self->m_cfg->keySize;
-                int areaW = self->m_cfg->freeAreaW;
-                int areaH = self->m_cfg->freeAreaH;
-                int fx = newX - winX;
-                int fy = newY - winY;
-                if (fx < 0) fx = 0;
-                if (fx + ks > areaW) fx = areaW - ks;
-                if (fy < 0) fy = 0;
-                if (fy + ks > areaH) fy = areaH - ks;
+                int fx, fy;
+                calcFreePos(newX, newY, fx, fy);
+                int bw = self->m_cfg->totalBoxW > 0 ? self->m_cfg->totalBoxW : self->m_cfg->keySize;
+                int bh = self->m_cfg->totalBoxH > 0 ? self->m_cfg->totalBoxH : self->m_cfg->keySize;
+                clampFree(fx, fy, bw, bh);
                 self->m_cfg->freeTotalX = fx;
                 self->m_cfg->freeTotalY = fy;
             } else if (self->m_cfg->freeMode && self->m_freeDragIdx == -3) {
                 int newX = pt.x - self->m_dragOffset.x;
                 int newY = pt.y - self->m_dragOffset.y;
-                int trackOffsetY = 0;
-                if (self->m_cfg->showHistory && !self->m_cfg->keys.empty()) {
-                    trackOffsetY = self->m_cfg->historyTrackH + self->m_cfg->historyTrackGap;
-                }
-                int winX = self->m_cfg->displayX;
-                int winY = self->m_cfg->displayY - trackOffsetY;
-                int ks = self->m_cfg->keySize;
-                int areaW = self->m_cfg->freeAreaW;
-                int areaH = self->m_cfg->freeAreaH;
-                int fx = newX - winX;
-                int fy = newY - winY;
-                if (fx < 0) fx = 0;
-                if (fx + ks > areaW) fx = areaW - ks;
-                if (fy < 0) fy = 0;
-                if (fy + ks > areaH) fy = areaH - ks;
+                int fx, fy;
+                calcFreePos(newX, newY, fx, fy);
+                int bw = self->m_cfg->kpsBoxW > 0 ? self->m_cfg->kpsBoxW : self->m_cfg->keySize;
+                int bh = self->m_cfg->kpsBoxH > 0 ? self->m_cfg->kpsBoxH : self->m_cfg->keySize;
+                clampFree(fx, fy, bw, bh);
                 self->m_cfg->freeKPSX = fx;
                 self->m_cfg->freeKPSY = fy;
             } else if (self->m_cfg->freeMode && self->m_freeDragIdx == -4) {
                 int newX = pt.x - self->m_dragOffset.x;
                 int newY = pt.y - self->m_dragOffset.y;
-                int trackOffsetY = 0;
-                if (self->m_cfg->showHistory && !self->m_cfg->keys.empty()) {
-                    trackOffsetY = self->m_cfg->historyTrackH + self->m_cfg->historyTrackGap;
-                }
-                int winX = self->m_cfg->displayX;
-                int winY = self->m_cfg->displayY - trackOffsetY;
-                int ks = self->m_cfg->keySize;
-                int areaW = self->m_cfg->freeAreaW;
-                int areaH = self->m_cfg->freeAreaH;
-                int fx = newX - winX;
-                int fy = newY - winY;
-                if (fx < 0) fx = 0;
-                if (fx + ks > areaW) fx = areaW - ks;
-                if (fy < 0) fy = 0;
-                if (fy + ks > areaH) fy = areaH - ks;
+                int fx, fy;
+                calcFreePos(newX, newY, fx, fy);
+                int bw = self->m_cfg->bpmBoxW > 0 ? self->m_cfg->bpmBoxW : self->m_cfg->keySize;
+                int bh = self->m_cfg->bpmBoxH > 0 ? self->m_cfg->bpmBoxH : self->m_cfg->keySize;
+                clampFree(fx, fy, bw, bh);
                 self->m_cfg->freeBPMX = fx;
                 self->m_cfg->freeBPMY = fy;
             } else {
