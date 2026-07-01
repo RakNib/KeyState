@@ -1,9 +1,10 @@
-# KeyState V1.5
+# KeyState V1.6
 
 > Lightweight Windows real-time keyboard state overlay monitor
 
 ![KeyState Preview](assets/preview.png)
 ![KeyState Preview 2](assets/preview2.png)
+![KeyState Preview 3](assets/preview3.gif)
 
 ---
 
@@ -38,17 +39,19 @@ Suitable for game streaming, key teaching, input method testing, keyboard showca
 | Section | Features |
 |---------|----------|
 | **Language** | Chinese / English / Japanese |
-| **Basic Settings** | Show Total / Show KPS / Show Summary / Show History / Show BPM / Click Through / Always on Top |
+| **Basic Settings** | Show Total / Show KPS / Show Summary / Show History / Show BPM / Click Through / Always on Top / UI Theme (白绿/黑紫/蓝白/橙黑) |
 | **Layout** | Key Spacing (0-40px) + Border Width (0-8px) + Overlay Opacity |
 | **Track** | Track Height (20-600px) + Grow Speed + Float Speed + Block Max% + Track Gap + Background Alpha + Block Alpha + Border Lines toggle |
 | **Visual** | 16 theme presets (Custom + 15 built-in) + Font selector |
 | **Key Mapping** | Press any key / mouse button to capture and add / Delete (at least 1 required); 5-layer key name fallback |
-| **Appearance (per-key)** | Custom label, width & height (64x64 default), font color / normal bg / press bg |
+| **Appearance (per-key)** | Custom label, width & height (64x64 default), font color / normal bg / press bg / **border color** |
 | **BPM** | Note division (8th/16th/32nd/64th) + Merge window (0-100ms) |
 | **Summary Box Colors + Size** | Independent background & text colors + custom width & height for Total / KPS / BPM boxes |
 | **Chart** | Show / Hide + Grid lines + Time range (1-30s) + Width/Height + Margins + Rounded corners + BG/Line colors + Type (line/scatter/bar) + Gradient fill |
 | **Chart Snap** | Snap below key display with adjustable X/Y offset |
 | **Free Mode** | Freely draggable keys + Configurable area (W x H) + Grid Snap (default on, tied to boundary) + Grid size (4-64px) |
+| **Recording** | Start/stop via hotkey + **live timer & status indicator** + **customizable output directory** |
+| **Hotkey Settings** | In-settings tab to view & modify all 7 global hotkeys |
 | **Render FPS** | 25 / 45 / 60 / 90 / 120 FPS |
 
 ---
@@ -66,9 +69,8 @@ Suitable for game streaming, key teaching, input method testing, keyboard showca
 | **Ctrl+Shift+P** | Global hotkey to cycle to **previous** theme preset |
 | **Ctrl+Shift+H** | Global hotkey to toggle history track display |
 | **Ctrl+Shift+U** | Global hotkey to toggle KPS chart display |
-| **Settings panel X** | Hide settings panel |
-| **Settings panel scroll** | Fixed 700px height window, use mouse wheel or drag scrollbar |
-| **Settings → 快捷键设置** | Opens Hotkey Editor dialog to view & modify all global hotkeys |
+| **Settings panel → 快捷键设置 tab** | View & modify all global hotkeys directly in-settings |
+| **Recording tab** | Live timer, blinking status indicator, customizable output directory |
 
 ---
 
@@ -136,21 +138,38 @@ An independent BPM box displayed next to the summary box:
 
 ```
 src/
-+-- main.cpp          # Entry point, message pump, tray, hotkeys
++-- main.cpp          # Entry point, message pump, tray, hotkeys, recording logic
 +-- config.h/cpp      # Config struct + JSON read/write + theme presets
 +-- keyboard.h/cpp    # Keyboard hook, state management, KPS, duration tracking
 +-- renderer.h/cpp    # GDI+ rendering, easing animation, track, summary, BPM
 +-- display_ui.h/cpp  # State transparent overlay, drag
 +-- chart_ui.h/cpp    # KPS real-time line chart overlay
-+-- settings_ui.h/cpp # Settings panel, color picker, Theme, scroll
++-- settings_ui.h/cpp # Settings panel, color picker, Theme, scroll, hotkeys tab, recording UI
 +-- theme_editor.h/cpp# Theme preset editor dialog
-+-- hotkey_ui.h/cpp   # Hotkey editor dialog
 +-- lang.h/cpp        # Multi-language string table
++-- imgui_setup.h/cpp # ImGui context init/shutdown, UI theme switching (4 themes)
 ```
 
 ---
 
 ## Version History
+
+### V1.6 (2026-07)
+
+- Added: **Track reversal** — optional downward-growing history track with blocks sinking instead of floating up
+- Added: **Key border color** — per-key customizable border color independent from font color
+- Added: **Rainbow UI themes** — 7 color themes (🔴Red/🟠Orange/🟡Yellow/🟢Green/🔵Blue/🟣Indigo/🟤Purple) switchable instantly in Basic Settings, persists across restarts
+- Added: **Recording enhancements** — live elapsed timer, blinking green recording indicator, customizable output directory via folder picker dialog
+- Added: **Hotkey Settings tab** — all 7 global hotkeys now configurable directly in-settings tab, removed standalone popup dialog
+- Added: **Full multi-language support** — all UI labels, tooltips, and button texts now translate with language switching
+- Added: **ImGui setup module** — refactored ImGui init/theme into `imgui_setup.h/cpp` for cleaner code separation
+- Changed: **Free Mode grid snap is always enabled** — removed non-grid placement option; hiding boundary now auto-enables click-through to lock layout
+- Changed: **Settings window** — no title bar, no resize handle, fixed size, outer window matches content area
+- Improved: **Track grow & float speed upper limit raised to 900 px/s** for faster visual feedback
+- Improved: **Settings UI layout optimization** — better grouping and more intuitive controls
+- Fixed: JSON config saving bug (duplicate `customH` field)
+- Fixed: Hotkey settings text flickering due to buffer conflict
+- Cleanup: Removed stale build error logs, duplicate favicon, and orphaned `hotkey_ui` source files
 
 ### V1.5 (2026-06)
 

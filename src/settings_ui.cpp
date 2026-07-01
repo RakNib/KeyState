@@ -1,237 +1,134 @@
 ﻿#include "settings_ui.h"
+#include "display_ui.h"
 #include "chart_ui.h"
 #include "theme_editor.h"
-#include "hotkey_ui.h"
 #include "keyboard.h"
 #include "lang.h"
+#include "imgui.h"
+#include "imgui_setup.h"
+#include <cstdio>
+#include <shlobj.h>
+#include <vector>
+#include <string>
+#include <functional>
 
-// ========== 控件 ID ==========
-enum {
-    CID_CHK_TOTAL      = 101,
-    CID_CHK_KPS        = 102,
-    CID_CHK_SUMMARY    = 116,
-    CID_CHK_HISTORY    = 117,
-    CID_CHK_THROUGH    = 113,
-    CID_TRACK_KEYSIZE  = 114,
-    CID_TRACK_HISTORYH = 118,
-    CID_EDIT_HISTORYH  = 119,
-    CID_TRACK_GROWSPD  = 120,
-    CID_EDIT_GROWSPD   = 121,
-    CID_TRACK_FLOATSPD = 122,
-    CID_EDIT_FLOATSPD  = 123,
-    CID_TRACK_BLOCKMAX = 124,
-    CID_EDIT_BLOCKMAX  = 125,
-    CID_CHK_BPM        = 129,
-    CID_RADIO_NOTE8    = 130,
-    CID_RADIO_NOTE16   = 131,
-    CID_RADIO_NOTE32   = 132,
-    CID_RADIO_NOTE64   = 133,
-    CID_RADIO_LANG_CN  = 134,
-    CID_RADIO_LANG_EN  = 135,
-    CID_RADIO_LANG_JP  = 136,
-    CID_RADIO_THEME0   = 137,
-    CID_RADIO_THEME1   = 138,
-    CID_RADIO_THEME2   = 139,
-    CID_RADIO_THEME3   = 140,
- 
-    CID_TRACK_BORDER   = 141,
-    CID_EDIT_BORDER    = 142,
-    CID_TRACK_OPACITY  = 143,
-    CID_EDIT_OPACITY   = 144,
-    CID_TRACK_TRACKGAP = 145,
-    CID_EDIT_TRACKGAP  = 146,
-    CID_TRACK_BPMMERGE = 147,
-    CID_EDIT_BPMMERGE  = 148,
-    CID_TRACK_TRACKALPHA = 153,
-    CID_EDIT_TRACKALPHA  = 154,
-    CID_TRACK_BLOCKALPHA = 155,
-    CID_EDIT_BLOCKALPHA  = 156,
-    CID_SW_THEME_FONT   = 157,
-    CID_SW_THEME_NORMAL = 158,
-    CID_SW_THEME_PRESS  = 159,
-    CID_SW_TOTALBG = 160, CID_SW_TOTALFC = 161,
-    CID_SW_KPSBG   = 162, CID_SW_KPSFC   = 163,
-    CID_SW_BPMBG   = 164, CID_SW_BPMFC   = 165,
-    CID_LBL_TOTALBG=166,CID_LBL_TOTALFC=167,CID_LBL_KPSBG=168,CID_LBL_KPSFC=169,
-    CID_LBL_BPMBG=170,CID_LBL_BPMFC=171,
-    CID_BTN_CUSTOMSV   = 149,
-    CID_LIST_CUSTHEME  = 150,
-    CID_BTN_CUSTAPPLY  = 151,
-    CID_BTN_CUSTDEL    = 152,
-    CID_RADIO_FPS25    = 126,
-    CID_RADIO_FPS90    = 147,
-    CID_RADIO_FPS120   = 148,
-    CID_RADIO_FPS45    = 127,
-    CID_RADIO_FPS60    = 128,
-    CID_EDIT_KEYSIZE   = 115,
-    CID_TRACK_SPACING  = 103,
-    CID_EDIT_SPACING   = 104,
-    CID_LIST_KEYS      = 105,
-    CID_BTN_ADD        = 106,
-    CID_BTN_DEL        = 107,
-    CID_SW_FONT        = 108,
-    CID_SW_NORMAL      = 109,
-    CID_SW_PRESS       = 110,
-    CID_BTN_SAVE       = 111,
-    CID_BTN_RESET_TOTAL= 112,
-    CID_BTN_RESET      = 174,
-    CID_CHK_CHART      = 175,
-    CID_TRACK_CHARTTIME = 176,
-    CID_EDIT_CHARTTIME  = 177,
-    CID_SW_CHARTBG     = 178,
-    CID_SW_CHARTLINE   = 179,
-    CID_TRACK_CHARTRADIUS = 180,
-    CID_EDIT_CHARTRADIUS  = 181,
-    CID_TRACK_CHARTW    = 182,
-    CID_EDIT_CHARTW     = 183,
-    CID_TRACK_CHARTH    = 184,
-    CID_EDIT_CHARTH     = 185,
-    CID_TRACK_CHARTML   = 186,
-    CID_EDIT_CHARTML    = 187,
-    CID_TRACK_CHARTMR   = 188,
-    CID_EDIT_CHARTMR    = 189,
-    CID_TRACK_CHARTMT   = 190,
-    CID_EDIT_CHARTMT    = 191,
-    CID_TRACK_CHARTMB   = 192,
-    CID_EDIT_CHARTMB    = 193,
-    CID_RADIO_THEME4    = 194,
-    CID_RADIO_THEME5    = 195,
-    CID_RADIO_THEME6    = 196,
-    CID_RADIO_THEME7    = 197,
-    CID_RADIO_THEME8    = 198,
-    CID_RADIO_THEME9    = 199,
-    CID_RADIO_THEME10   = 200,
-    CID_RADIO_THEME11   = 201,
-    CID_RADIO_THEME12   = 202,
-    CID_RADIO_THEME13   = 203,
-    CID_RADIO_THEME14   = 204,
-    CID_RADIO_THEME15   = 205,
-    CID_BTN_THEMEEDIT   = 206,
-    CID_CHK_CHART_SNAP  = 207,
-    CID_TRACK_CHART_SNAPX = 208,
-    CID_EDIT_CHART_SNAPX  = 209,
-    CID_TRACK_CHART_SNAPY = 210,
-    CID_EDIT_CHART_SNAPY  = 211,
-    CID_CHK_TOP_MOST      = 212,
-    CID_BTN_FONT          = 213,
-    CID_CHK_TRACK_LINES   = 214,
-    CID_CHK_CHART_GRID    = 215,
-    CID_RADIO_CHART_LINE  = 216,
-    CID_RADIO_CHART_SCATTER = 217,
-    CID_RADIO_CHART_BAR   = 218,
-    CID_CHK_CHART_GRADIENT = 219,
-    CID_RADIO_NORMAL_MODE = 220,
-    CID_RADIO_FREE_MODE   = 221,
-    CID_BTN_RECORD_HOTKEY = 222,
-    CID_TRACK_FREE_AREA_W = 223,
-    CID_EDIT_FREE_AREA_W  = 224,
-    CID_TRACK_FREE_AREA_H = 225,
-    CID_EDIT_FREE_AREA_H  = 226,
-    CID_CHK_FREE_BOUNDARY = 227,
-    CID_BTN_HOTKEY_EDITOR = 228,
-    // V1.5: 自定义按键宽高 + 网格吸附 + 图标
-    CID_EDIT_KEY_W        = 229,
-    CID_EDIT_KEY_H        = 230,
-    CID_CHK_GRID_SNAP     = 231,
-    CID_TRACK_GRID_SIZE   = 232,
-    CID_EDIT_GRID_SIZE    = 233,
-    // V1.5: 数据框自定义宽高
-    CID_EDIT_TOTAL_BOX_W  = 237,
-    CID_EDIT_TOTAL_BOX_H  = 238,
-    CID_EDIT_KPS_BOX_W    = 239,
-    CID_EDIT_KPS_BOX_H    = 240,
-    CID_EDIT_BPM_BOX_W    = 241,
-    CID_EDIT_BPM_BOX_H    = 242,
-    // V1.5: 自定义按键名称
-    CID_EDIT_KEY_NAME     = 243,
-};
-
-// 色块控件
-static const wchar_t* SWATCH_CLASS = L"KeyStateSwatch";
-
-static LRESULT CALLBACK SwatchProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-    switch (msg) {
-    case WM_PAINT: {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
-        RECT rc; GetClientRect(hwnd, &rc);
-        auto* sd = reinterpret_cast<SwatchData*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
-        if (sd && sd->color) {
-            HBRUSH hBr = CreateSolidBrush(RGB(sd->color->r, sd->color->g, sd->color->b));
-            FillRect(hdc, &rc, hBr);
-            DeleteObject(hBr);
-        }
-        HPEN hPen = CreatePen(PS_SOLID, 1, RGB(100, 100, 100));
-        HPEN old = (HPEN)SelectObject(hdc, hPen);
-        HBRUSH hollow = (HBRUSH)GetStockObject(NULL_BRUSH);
-        HBRUSH oldBr = (HBRUSH)SelectObject(hdc, hollow);
-        Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
-        SelectObject(hdc, oldBr); SelectObject(hdc, old);
-        DeleteObject(hPen);
-        EndPaint(hwnd, &ps);
-        return 0;
-    }
-    case WM_LBUTTONUP: {
-        HWND parent = GetParent(hwnd);
-        int cid = GetDlgCtrlID(hwnd);
-        PostMessageW(parent, WM_COMMAND, MAKEWPARAM(cid, 0), 0);
-        return 0;
-    }
-    }
-    return DefWindowProcW(hwnd, msg, wp, lp);
+// ========== 多语言辅助函数 ==========
+static const char* S(int key) {
+    static char buf[64][256];
+    static int idx = 0;
+    idx = (idx + 1) % 64;
+    buf[idx][0] = '\0';
+    const wchar_t* ws = LANG(key);
+    if (!ws) return "";
+    WideCharToMultiByte(CP_UTF8, 0, ws, -1, buf[idx], 256, nullptr, nullptr);
+    return buf[idx];
 }
 
-// ========== SettingsUI 实现 ==========
+static const char* ToUtf8(const std::wstring& ws) {
+    static char buf[64][1024];
+    static int idx = 0;
+    idx = (idx + 1) % 64;
+    buf[idx][0] = '\0';
+    if (ws.empty()) return "";
+    WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, buf[idx], 1024, nullptr, nullptr);
+    return buf[idx];
+}
 
+static ImVec4 ToImCol(const RgbaColor& c) {
+    return ImVec4(c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, c.a / 255.0f);
+}
+static RgbaColor ToRgba(const ImVec4& v) {
+    return {(uint8_t)(v.x * 255), (uint8_t)(v.y * 255), (uint8_t)(v.z * 255), (uint8_t)(v.w * 255)};
+}
+
+static void GetKeyNameText(int vk, char* buf, int bufSize) {
+    wchar_t keyName[64] = {};
+    UINT sc = MapVirtualKeyW(vk, MAPVK_VK_TO_VSC);
+    bool ext = false;
+    switch (vk) {
+        case VK_LEFT: case VK_UP: case VK_RIGHT: case VK_DOWN:
+        case VK_PRIOR: case VK_NEXT: case VK_END: case VK_HOME:
+        case VK_INSERT: case VK_DELETE: case VK_DIVIDE: case VK_NUMLOCK: ext = true;
+    }
+    LONG lp = (sc << 16) | (ext ? 0x01000000 : 0);
+    if (GetKeyNameTextW(lp, keyName, 64) > 0) {
+        WideCharToMultiByte(CP_UTF8, 0, keyName, -1, buf, bufSize, nullptr, nullptr);
+        return;
+    }
+    snprintf(buf, bufSize, "VK_%d", vk);
+}
+
+// ========== 全局 ==========
+int g_capturedVK = 0;
+bool SettingsUI::s_inModalDialog = false;
+
+// 捕获状态：0=无, 1=添加按键, 2=录制快捷键
+static int s_captureState = 0;
+// 快捷键设置页捕获状态：-1=无
+static int s_hkCapturing = -1;
+
+// ========== 统一滑块布局：标签(左对齐) + 滑块 + 手动输入 + 空行 ==========
+static void SliderRow(const char* label, int* val, int lo, int hi,
+                      std::function<void()> onSave, int labelW) {
+    ImGui::TextUnformatted(label);
+    ImGui::SameLine((float)labelW);
+    ImGui::SetNextItemWidth(210);
+    char sid[64]; snprintf(sid, 64, "##s%s", label);
+    if (ImGui::SliderInt(sid, val, lo, hi, "%d")) {}
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        if (*val < lo) *val = lo;
+        if (*val > hi) *val = hi;
+        if (onSave) onSave();
+    }
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(85);
+    char iid[64]; snprintf(iid, 64, "##i%s", label);
+    if (ImGui::InputInt(iid, val, 1, 10)) {
+        if (*val < lo) *val = lo;
+        if (*val > hi) *val = hi;
+    }
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        if (onSave) onSave();
+    }
+    ImGui::Spacing();
+}
+
+// ========== 构造/析构 ==========
 SettingsUI::SettingsUI()  = default;
-SettingsUI::~SettingsUI() { if (m_hwnd) DestroyWindow(m_hwnd); if (m_hFont) DeleteObject(m_hFont); }
+SettingsUI::~SettingsUI() { if (m_hwnd) DestroyWindow(m_hwnd); }
 
-bool SettingsUI::Create(HINSTANCE hInst, AppConfig* cfg, DisplayUI* display, ChartUI* chart, ThemeEditor* te, KeyStateManager* ksm) {
+bool SettingsUI::Create(HINSTANCE hInst, AppConfig* cfg, DisplayUI* display,
+                        ChartUI* chart, ThemeEditor* te, KeyStateManager* ksm) {
     m_hInst       = hInst;
     m_cfg         = cfg;
     m_display     = display;
     m_chart       = chart;
     m_themeEditor = te;
     m_ksm         = ksm;
-
-    // 注册色块控件
-    WNDCLASSEXW swc = {};
-    swc.cbSize        = sizeof(swc);
-    swc.lpfnWndProc   = SwatchProc;
-    swc.hInstance     = hInst;
-    swc.lpszClassName = SWATCH_CLASS;
-    swc.hCursor       = LoadCursorW(nullptr, (LPCWSTR)IDC_HAND);
-    swc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    RegisterClassExW(&swc);
-
-    static const wchar_t* CLASS_NAME = L"KeyStateSettingsV3";
+    static const wchar_t* CLASS_NAME = L"KeyStateSettingsImgui";
     WNDCLASSEXW wc = {};
-    wc.cbSize        = sizeof(wc);
-    wc.lpfnWndProc   = WndProc;
-    wc.hInstance     = hInst;
-    wc.lpszClassName = CLASS_NAME;
-    wc.hCursor       = LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    HICON hIcon = LoadIconW(GetModuleHandleW(nullptr), L"IDI_KEYSTATE");
-    if (!hIcon) hIcon = (HICON)LoadImageW(nullptr, L"favicon.ico", IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
-    wc.hIcon         = hIcon ? hIcon : LoadIconW(nullptr, (LPCWSTR)IDI_APPLICATION);
+    wc.cbSize = sizeof(wc); wc.lpfnWndProc = WndProc; wc.hInstance = hInst;
+    wc.lpszClassName = CLASS_NAME; wc.hCursor = LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
+    wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     RegisterClassExW(&wc);
-
-    m_hwnd = CreateWindowExW(0, CLASS_NAME, LANG(0),
-                              WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE | WS_VSCROLL,
-                              CW_USEDEFAULT, CW_USEDEFAULT, 530, kVisibleH,
-                              nullptr, nullptr, hInst, this);
-    return m_hwnd != nullptr;
+    RECT cr = {0, 0, 660, 650};
+    AdjustWindowRect(&cr, WS_OVERLAPPEDWINDOW, FALSE);
+    m_hwnd = CreateWindowExW(0, CLASS_NAME, L"KeyState V1.6",
+        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+        cr.right - cr.left, cr.bottom - cr.top, nullptr, nullptr, hInst, this);
+    if (!m_hwnd) return false;
+    if (!ImGui_Init(m_hwnd)) { DestroyWindow(m_hwnd); m_hwnd = nullptr; return false; }
+    return true;
 }
 
 void SettingsUI::Show(bool visible) {
-    if (!m_hwnd && visible) {
-        Create(m_hInst, m_cfg, m_display, m_chart, m_themeEditor, m_ksm);
-        if (m_hwnd) RefreshControls();
-    }
-    if (m_hwnd) {
-        ShowWindow(m_hwnd, visible ? SW_SHOWNORMAL : SW_HIDE);
-        if (visible) SetForegroundWindow(m_hwnd);
+    m_visible = visible;
+    if (!m_hwnd) return;
+    if (visible) {
+        ShowWindow(m_hwnd, SW_SHOW);
+        SetForegroundWindow(m_hwnd);
+    } else {
+        ShowWindow(m_hwnd, SW_HIDE);
     }
 }
 
@@ -239,1504 +136,655 @@ void SettingsUI::Show(bool visible) {
 LRESULT CALLBACK SettingsUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     SettingsUI* self = nullptr;
     if (msg == WM_CREATE) {
-        auto* cs = reinterpret_cast<CREATESTRUCT*>(lp);
-        self = static_cast<SettingsUI*>(cs->lpCreateParams);
-        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        auto* cs = (CREATESTRUCT*)lp;
+        self = (SettingsUI*)cs->lpCreateParams;
+        SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)self);
         self->m_hwnd = hwnd;
-        self->OnCreate(hwnd);
     } else {
-        self = reinterpret_cast<SettingsUI*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+        self = (SettingsUI*)GetWindowLongPtrW(hwnd, GWLP_USERDATA);
     }
     if (!self) return DefWindowProcW(hwnd, msg, wp, lp);
 
+    // 按键捕获
+    if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) {
+        int vk = (int)wp;
+        if (vk != 229) g_capturedVK = vk;
+    }
+
+    // ImGui 输入处理
+    if (ImGui_ProcessMessage(hwnd, msg, wp, lp))
+        return true;
+
     switch (msg) {
-    case WM_CLOSE:
-        self->Show(false);
-        return 0;
-    case WM_COMMAND: self->OnCommand(wp, lp); return 0;
-    case WM_HSCROLL: self->OnHScroll(wp, lp); return 0;
-    case WM_VSCROLL: self->OnVScroll(wp, lp); return 0;
-    case WM_MOUSEWHEEL: self->OnMouseWheel(wp); return 0;
-    case WM_DESTROY: self->OnDestroy();       return 0;
+    case WM_CLOSE: self->Show(false); return 0;
+    case WM_DESTROY: ImGui_Shutdown(); self->m_hwnd = nullptr; return 0;
     }
     return DefWindowProcW(hwnd, msg, wp, lp);
 }
 
-// ========== 创建控件 ==========
-void SettingsUI::OnCreate(HWND hwnd) {
-    auto ctl = [&](const wchar_t* cls, const wchar_t* text, DWORD style, int x, int y, int w, int h, int id) -> HWND {
-        HWND c = CreateWindowExW(0, cls, text, style | WS_VISIBLE | WS_CHILD, x, y, w, h, hwnd, (HMENU)(INT_PTR)id, m_hInst, nullptr);
-        if (m_hFont) { SendMessageW(c, WM_SETFONT, (WPARAM)m_hFont, TRUE); }
-        return c;
-    };
-    auto lbl = [&](const wchar_t* text, int x, int y, int w, int h) { return ctl(L"STATIC", text, SS_LEFT, x, y, w, h, 0); };
-    auto sep = [&](int y) { ctl(L"STATIC", L"", SS_ETCHEDHORZ | SS_SUNKEN, 15, y, 500, 2, 0); };
-    auto mks = [&](int x, int& y, const wchar_t* l, int trId, int edId, HWND& tr, HWND& ed, int lo, int hi, int v, int tic) {
-        lbl(l, x, y, 180, 20); y += 22; tr = ctl(TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, x, y, 370, 28, trId);
-        SendMessageW(tr, TBM_SETRANGE, TRUE, MAKELPARAM(lo, hi)); if (tic) SendMessageW(tr, TBM_SETTICFREQ, tic, 0); SendMessageW(tr, TBM_SETPOS, TRUE, v);
-        ed = ctl(L"EDIT", L"", ES_CENTER | ES_NUMBER | WS_BORDER | WS_TABSTOP, x + 380, y, 46, 22, edId); y += 38;
-    };
-    auto div = [&](int& y) { sep(y); y += 10; };
-    int y = 12, CX = 20;
-
-    // 1. Language
-    lbl(LANG(24), CX, y, 120, 20); y += 24;
-    m_radioLangCN = ctl(L"BUTTON", LANG(25), BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, CX, y, 60, 24, CID_RADIO_LANG_CN);
-    m_radioLangEN = ctl(L"BUTTON", LANG(26), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 68, y, 65, 24, CID_RADIO_LANG_EN);
-    m_radioLangJP = ctl(L"BUTTON", LANG(27), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 140, y, 65, 24, CID_RADIO_LANG_JP);
-    y += 34;
-    if (m_cfg) { int l = m_cfg->lang;
-        SendMessageW(m_radioLangCN, BM_SETCHECK, (l == 0) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioLangEN, BM_SETCHECK, (l == 1) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioLangJP, BM_SETCHECK, (l == 2) ? BST_CHECKED : BST_UNCHECKED, 0); }
-
-    // 2. Basic Settings
-    lbl(LANG(1), CX, y, 150, 20); y += 26;
-    // Row 1: 显示选项
-    m_chkTotal = ctl(L"BUTTON", LANG(2), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 130, 24, CID_CHK_TOTAL);
-    m_chkKPS = ctl(L"BUTTON", LANG(3), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 135, y, 120, 24, CID_CHK_KPS);
-    m_chkBPM = ctl(L"BUTTON", LANG(6), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 260, y, 120, 24, CID_CHK_BPM);
-    y += 28;
-    // Row 2: 汇总 + 穿透 + 顶层置顶
-    m_chkSummary = ctl(L"BUTTON", LANG(4), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 130, 24, CID_CHK_SUMMARY);
-    m_chkThrough = ctl(L"BUTTON", LANG(7), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 135, y, 140, 24, CID_CHK_THROUGH);
-    m_chkTopMost = ctl(L"BUTTON", LANG(88), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 280, y, 150, 24, CID_CHK_TOP_MOST);
-    y += 28;
-    // Row 3: BPM 分音基准
-    lbl(L"BPM:", CX, y, 45, 24);
-    m_radioNote8 = ctl(L"BUTTON", LANG(37), BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, CX + 48, y, 50, 24, CID_RADIO_NOTE8);
-    m_radioNote16 = ctl(L"BUTTON", LANG(38), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 103, y, 55, 24, CID_RADIO_NOTE16);
-    m_radioNote32 = ctl(L"BUTTON", LANG(39), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 163, y, 55, 24, CID_RADIO_NOTE32);
-    m_radioNote64 = ctl(L"BUTTON", LANG(40), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 223, y, 55, 24, CID_RADIO_NOTE64);
-    y += 30;
-    // Row 4: 字体选择
-    m_btnFont = ctl(L"BUTTON", L"选择字体", BS_PUSHBUTTON | WS_TABSTOP, CX, y, 100, 24, CID_BTN_FONT);
-    { wchar_t fb[64]; swprintf(fb, 64, L"%ls", m_cfg->keyFontName.c_str()); lbl(fb, CX + 108, y, 240, 24); }
-    y += 34;
-    if (m_cfg) {
-        SendMessageW(m_chkTotal, BM_SETCHECK, m_cfg->showTotal ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_chkKPS, BM_SETCHECK, m_cfg->showKPS ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_chkBPM, BM_SETCHECK, m_cfg->showBPM ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_chkSummary, BM_SETCHECK, m_cfg->showSummary ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_chkThrough, BM_SETCHECK, m_cfg->clickThrough ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_chkTopMost, BM_SETCHECK, m_cfg->alwaysOnTop ? BST_CHECKED : BST_UNCHECKED, 0);
-        int nd = m_cfg->bpmNoteDiv;
-        SendMessageW(m_radioNote8, BM_SETCHECK, (nd == 8) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioNote16, BM_SETCHECK, (nd != 8 && nd != 32 && nd != 64) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioNote32, BM_SETCHECK, (nd == 32) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioNote64, BM_SETCHECK, (nd == 64) ? BST_CHECKED : BST_UNCHECKED, 0); }
-
-    // 3. Theme
-    div(y);
-    int tidCids[16] = { CID_RADIO_THEME0, CID_RADIO_THEME1, CID_RADIO_THEME2, CID_RADIO_THEME3,
-        CID_RADIO_THEME4, CID_RADIO_THEME5, CID_RADIO_THEME6, CID_RADIO_THEME7,
-        CID_RADIO_THEME8, CID_RADIO_THEME9, CID_RADIO_THEME10, CID_RADIO_THEME11,
-        CID_RADIO_THEME12, CID_RADIO_THEME13, CID_RADIO_THEME14, CID_RADIO_THEME15 };
-    for (int r = 0; r < 4; ++r)
-        for (int c = 0; c < 4; ++c) {
-            int i = r * 4 + c, lid = (i == 0) ? 46 : ((i <= 3) ? (46 + i) : (70 + i - 4));
-            const wchar_t* name = (m_cfg && i < (int)m_cfg->themePresets.size() && !m_cfg->themePresets[i].name.empty())
-                ? m_cfg->themePresets[i].name.c_str() : LANG(lid);
-            HWND hw = ctl(L"BUTTON", name, BS_AUTORADIOBUTTON | WS_TABSTOP | ((i == 0) ? WS_GROUP : 0), CX + c * 122, y + r * 26, 115, 22, tidCids[i]);
-            ((HWND*)&m_radioTheme0)[i] = hw;
-        }
-    y += 4 * 26 + 8;
-    m_btnThemeEdit = ctl(L"BUTTON", LANG(82), BS_PUSHBUTTON | WS_TABSTOP, CX, y, 130, 26, CID_BTN_THEMEEDIT);
-    y += 38;
-    if (m_cfg) { int th = m_cfg->theme;
-        for (int i = 0; i < 16; ++i) SendMessageW(((HWND*)&m_radioTheme0)[i], BM_SETCHECK, (th == i) ? BST_CHECKED : BST_UNCHECKED, 0); }
-
-    // 4. Key Mappings + Layout
-    div(y);
-    lbl(LANG(15), CX, y, 150, 20); y += 26;
-    // 布局模式
-    lbl(LANG(95), CX, y, 70, 24);
-    m_radioNormalMode = ctl(L"BUTTON", LANG(96), BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, CX + 72, y, 80, 22, CID_RADIO_NORMAL_MODE);
-    m_radioFreeMode = ctl(L"BUTTON", LANG(97), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 158, y, 80, 22, CID_RADIO_FREE_MODE);
-    if (m_cfg) {
-        SendMessageW(m_radioNormalMode, BM_SETCHECK, m_cfg->freeMode ? BST_UNCHECKED : BST_CHECKED, 0);
-        SendMessageW(m_radioFreeMode, BM_SETCHECK, m_cfg->freeMode ? BST_CHECKED : BST_UNCHECKED, 0);
-    }
-    y += 30;
-    // 自由模式区域尺寸
-    m_chkFreeBoundary = ctl(L"BUTTON", L"显示区域边界", BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 120, 22, CID_CHK_FREE_BOUNDARY);
-    if (m_cfg) SendMessageW(m_chkFreeBoundary, BM_SETCHECK, m_cfg->freeShowBoundary ? BST_CHECKED : BST_UNCHECKED, 0);
-    y += 28;
-    mks(CX, y, L"区域宽度 (px)", CID_TRACK_FREE_AREA_W, CID_EDIT_FREE_AREA_W, m_trackFreeAreaW, m_editFreeAreaW, 200, 1200, m_cfg ? m_cfg->freeAreaW : 600, 100);
-    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg?m_cfg->freeAreaW:600); SetWindowTextW(m_editFreeAreaW,tb); }
-    mks(CX, y, L"区域高度 (px)", CID_TRACK_FREE_AREA_H, CID_EDIT_FREE_AREA_H, m_trackFreeAreaH, m_editFreeAreaH, 100, 800, m_cfg ? m_cfg->freeAreaH : 400, 50);
-    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg?m_cfg->freeAreaH:400); SetWindowTextW(m_editFreeAreaH,tb); }
-    // V1.5: 自由模式网格吸附
-    m_chkGridSnap = ctl(L"BUTTON", LANG(108), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 100, 22, CID_CHK_GRID_SNAP);
-    if (m_cfg) SendMessageW(m_chkGridSnap, BM_SETCHECK, m_cfg->freeGridSnap ? BST_CHECKED : BST_UNCHECKED, 0);
-    y += 28;
-    mks(CX, y, LANG(109), CID_TRACK_GRID_SIZE, CID_EDIT_GRID_SIZE, m_trackGridSize, m_editGridSize, 4, 64, m_cfg ? m_cfg->freeGridSize : 20, 4);
-    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg?m_cfg->freeGridSize:20); SetWindowTextW(m_editGridSize,tb); }
-    m_listKeys = ctl(L"LISTBOX", L"", LBS_NOTIFY | WS_VSCROLL | WS_BORDER | WS_TABSTOP, CX, y, 370, 100, CID_LIST_KEYS);
-    m_btnAdd = ctl(L"BUTTON", LANG(16), BS_PUSHBUTTON | WS_TABSTOP, 400, y, 90, 30, CID_BTN_ADD);
-    m_btnDel = ctl(L"BUTTON", LANG(17), BS_PUSHBUTTON | WS_TABSTOP, 400, y + 36, 90, 30, CID_BTN_DEL);
-    RefreshKeyList(); y += 118;
-    lbl(LANG(18), CX, y, 360, 20); y += 26;
-    lbl(LANG(19), CX, y, 120, 24); m_swFont = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 130, y, 36, 24, CID_SW_FONT); m_lblFont = lbl(L"", CX + 172, y, 200, 24); y += 32;
-    lbl(LANG(20), CX, y, 120, 24); m_swNormal = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 130, y, 36, 24, CID_SW_NORMAL); m_lblNormal = lbl(L"", CX + 172, y, 200, 24); y += 32;
-    lbl(LANG(21), CX, y, 120, 24); m_swPress = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 130, y, 36, 24, CID_SW_PRESS); m_lblPress = lbl(L"", CX + 172, y, 200, 24); y += 32;
-    // V1.5: 自定义按键名称
-    lbl(L"名称:", CX, y, 40, 24);
-    m_editKeyName = ctl(L"EDIT", L"", ES_LEFT | WS_BORDER | WS_TABSTOP, CX + 44, y, 180, 22, CID_EDIT_KEY_NAME);
-    y += 30;
-    // V1.5: 每个按键的独立宽高
-    lbl(LANG(110), CX, y, 30, 24);
-    m_editKeyWidth = ctl(L"EDIT", L"64", ES_CENTER | ES_NUMBER | WS_BORDER | WS_TABSTOP, CX + 34, y, 50, 22, CID_EDIT_KEY_W);
-    lbl(L"px", CX + 88, y, 20, 24);
-    lbl(LANG(111), CX + 115, y, 30, 24);
-    m_editKeyHeight = ctl(L"EDIT", L"64", ES_CENTER | ES_NUMBER | WS_BORDER | WS_TABSTOP, CX + 149, y, 50, 22, CID_EDIT_KEY_H);
-    lbl(L"px", CX + 203, y, 20, 24);
-    y += 44;
-    UpdateColorSwatches(-1);
-
-    mks(CX, y, LANG(9), CID_TRACK_SPACING, CID_EDIT_SPACING, m_trackSpacing, m_editSpacing, 0, 40, m_cfg->keySpacing, 4); SyncSpacingEdit();
-    mks(CX, y, LANG(53), CID_TRACK_BORDER, CID_EDIT_BORDER, m_trackBorder, m_editBorder, 0, 8, m_cfg->keyBorderW, 1); SyncBorderEdit();
-    mks(CX, y, LANG(54), CID_TRACK_OPACITY, CID_EDIT_OPACITY, m_trackOpacity, m_editOpacity, 10, 100, (int)(m_cfg->overlayOpacity * 100), 10); SyncOpacityEdit();
-
-    // 5. Track + BPM + FPS
-    div(y);
-    m_chkHistory = ctl(L"BUTTON", LANG(5), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 130, 24, CID_CHK_HISTORY);
-    m_chkTrackLines = ctl(L"BUTTON", LANG(89), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 140, y, 150, 24, CID_CHK_TRACK_LINES); y += 28;
-    if (m_cfg) {
-        SendMessageW(m_chkHistory, BM_SETCHECK, m_cfg->showHistory ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_chkTrackLines, BM_SETCHECK, m_cfg->historyShowLines ? BST_CHECKED : BST_UNCHECKED, 0);
-    }
-    // 自由模式下禁用轨道
-    if (m_cfg && m_cfg->freeMode && m_chkHistory) EnableWindow(m_chkHistory, FALSE);
-    mks(CX, y, LANG(10), CID_TRACK_HISTORYH, CID_EDIT_HISTORYH, m_trackHistoryH, m_editHistoryH, 20, 600, m_cfg->historyTrackH, 10); SyncHistoryHEdit();
-    mks(CX, y, LANG(11), CID_TRACK_GROWSPD, CID_EDIT_GROWSPD, m_trackGrowSpd, m_editGrowSpd, 10, 300, m_cfg->historyGrowSpeed, 20); SyncGrowSpdEdit();
-    mks(CX, y, LANG(12), CID_TRACK_FLOATSPD, CID_EDIT_FLOATSPD, m_trackFloatSpd, m_editFloatSpd, 10, 300, m_cfg->historyFloatSpeed, 20); SyncFloatSpdEdit();
-    mks(CX, y, LANG(41), CID_TRACK_TRACKGAP, CID_EDIT_TRACKGAP, m_trackTrackGap, m_editTrackGap, 0, 30, m_cfg->historyTrackGap, 2); SyncTrackGapEdit();
-    mks(CX, y, LANG(43), CID_TRACK_BLOCKALPHA, CID_EDIT_BLOCKALPHA, m_trackBlockAlpha, m_editBlockAlpha, 0, 255, m_cfg->historyBlockAlpha, 32); SyncBlockAlphaEdit();
-    mks(CX, y, LANG(44), CID_TRACK_BPMMERGE, CID_EDIT_BPMMERGE, m_trackBpmMerge, m_editBpmMerge, 0, 100, m_cfg->bpmMergeMs, 1); SyncBpmMergeEdit();
-    mks(CX, y, LANG(13), CID_TRACK_BLOCKMAX, CID_EDIT_BLOCKMAX, m_trackBlockMax, m_editBlockMax, 10, 100, m_cfg->historyBlockMax, 10); SyncBlockMaxEdit();
-    lbl(LANG(14), CX, y, 100, 20); y += 24;
-    m_radioFps25 = ctl(L"BUTTON", L"25", BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, CX, y, 45, 22, CID_RADIO_FPS25);
-    m_radioFps45 = ctl(L"BUTTON", L"45", BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 52, y, 45, 22, CID_RADIO_FPS45);
-    m_radioFps60 = ctl(L"BUTTON", L"60", BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 104, y, 45, 22, CID_RADIO_FPS60);
-    m_radioFps90 = ctl(L"BUTTON", L"90", BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 156, y, 45, 22, CID_RADIO_FPS90);
-    m_radioFps120 = ctl(L"BUTTON", L"120", BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 208, y, 45, 22, CID_RADIO_FPS120);
-    y += 30;
-    if (m_cfg) { int f = m_cfg->fps;
-        SendMessageW(m_radioFps25, BM_SETCHECK, (f == 25 || (f != 45 && f != 60 && f != 90 && f != 120)) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioFps45, BM_SETCHECK, (f == 45) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioFps60, BM_SETCHECK, (f == 60) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioFps90, BM_SETCHECK, (f == 90) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioFps120, BM_SETCHECK, (f == 120) ? BST_CHECKED : BST_UNCHECKED, 0); }
-
-    // 6. Box Colors
-    div(y);
-    lbl(LANG(50), CX, y, 150, 20); y += 28;
-    auto addSwRow = [&](int ry, const wchar_t* label, int bgId, int fcId, RgbaColor* bg, RgbaColor* fc) {
-        lbl(label, CX, ry, 60, 24); m_swBox[bgId - CID_SW_TOTALBG] = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 65, ry, 30, 24, bgId);
-        lbl(LANG(51), CX + 100, ry, 26, 24); m_swBox[fcId - CID_SW_TOTALBG] = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 130, ry, 30, 24, fcId);
-        lbl(LANG(52), CX + 165, ry, 40, 24);
-        auto sd = new SwatchData{bg}; SetWindowLongPtrW(m_swBox[bgId - CID_SW_TOTALBG], GWLP_USERDATA, (LONG_PTR)sd);
-        auto sd2 = new SwatchData{fc}; SetWindowLongPtrW(m_swBox[fcId - CID_SW_TOTALBG], GWLP_USERDATA, (LONG_PTR)sd2);
-        InvalidateRect(m_swBox[bgId - CID_SW_TOTALBG], nullptr, TRUE); InvalidateRect(m_swBox[fcId - CID_SW_TOTALBG], nullptr, TRUE);
-    };
-    addSwRow(y, L"Total:", CID_SW_TOTALBG, CID_SW_TOTALFC, &m_cfg->totalBoxBg, &m_cfg->totalBoxFc); y += 30;
-    addSwRow(y, L"KPS:", CID_SW_KPSBG, CID_SW_KPSFC, &m_cfg->kpsBoxBg, &m_cfg->kpsBoxFc); y += 30;
-    addSwRow(y, L"BPM:", CID_SW_BPMBG, CID_SW_BPMFC, &m_cfg->bpmBoxBg, &m_cfg->bpmBoxFc); y += 30;
-    // V1.5: 数据框宽高
-    auto addBoxSize = [&](int ry, const wchar_t* label, HWND& edW, HWND& edH, int wId, int hId, int defW, int defH) {
-        lbl(label, CX, ry, 50, 24);
-        lbl(L"W:", CX + 52, ry, 24, 24);
-        edW = ctl(L"EDIT", L"64", ES_CENTER | ES_NUMBER | WS_BORDER, CX + 78, ry, 45, 22, wId);
-        lbl(L"px", CX + 126, ry, 20, 24);
-        lbl(L"H:", CX + 150, ry, 24, 24);
-        edH = ctl(L"EDIT", L"64", ES_CENTER | ES_NUMBER | WS_BORDER, CX + 176, ry, 45, 22, hId);
-        { wchar_t tb[16]; swprintf(tb,16,L"%d",defW); SetWindowTextW(edW,tb); }
-        { wchar_t tb[16]; swprintf(tb,16,L"%d",defH); SetWindowTextW(edH,tb); }
-    };
-    addBoxSize(y, L"Total:", m_editTotalBoxW, m_editTotalBoxH, 237, 238, m_cfg->totalBoxW, m_cfg->totalBoxH); y += 28;
-    addBoxSize(y, L"KPS:",   m_editKpsBoxW,   m_editKpsBoxH,   239, 240, m_cfg->kpsBoxW,   m_cfg->kpsBoxH);   y += 28;
-    addBoxSize(y, L"BPM:",   m_editBpmBoxW,   m_editBpmBoxH,   241, 242, m_cfg->bpmBoxW,   m_cfg->bpmBoxH);   y += 38;
-
-    // 7. Chart
-    div(y);
-    lbl(LANG(58), CX, y, 120, 20); y += 26;
-    m_chkChart = ctl(L"BUTTON", LANG(59), BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 140, 24, CID_CHK_CHART);
-    m_chkChartGrid = ctl(L"BUTTON", LANG(90), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 150, y, 140, 24, CID_CHK_CHART_GRID); y += 28;
-    // 图表类型
-    lbl(L"图表类型:", CX, y, 65, 24);
-    m_radioChartLine = ctl(L"BUTTON", LANG(91), BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, CX + 68, y, 60, 22, CID_RADIO_CHART_LINE);
-    m_radioChartScatter = ctl(L"BUTTON", LANG(92), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 130, y, 65, 22, CID_RADIO_CHART_SCATTER);
-    m_radioChartBar = ctl(L"BUTTON", LANG(93), BS_AUTORADIOBUTTON | WS_TABSTOP, CX + 200, y, 65, 22, CID_RADIO_CHART_BAR);
-    m_chkChartGradient = ctl(L"BUTTON", LANG(94), BS_AUTOCHECKBOX | WS_TABSTOP, CX + 280, y, 100, 24, CID_CHK_CHART_GRADIENT);
-    y += 30;
-    if (m_cfg) {
-        SendMessageW(m_chkChart, BM_SETCHECK, m_cfg->showChart ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_chkChartGrid, BM_SETCHECK, m_cfg->chartShowGrid ? BST_CHECKED : BST_UNCHECKED, 0);
-        int ct = m_cfg->chartType;
-        SendMessageW(m_radioChartLine, BM_SETCHECK, (ct == 0) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioChartScatter, BM_SETCHECK, (ct == 1) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_radioChartBar, BM_SETCHECK, (ct == 2) ? BST_CHECKED : BST_UNCHECKED, 0);
-        SendMessageW(m_chkChartGradient, BM_SETCHECK, m_cfg->chartGradientFill ? BST_CHECKED : BST_UNCHECKED, 0);
-    }
-    mks(CX, y, LANG(60), CID_TRACK_CHARTTIME, CID_EDIT_CHARTTIME, m_trackChartTime, m_editChartTime, 1, 30, m_cfg->chartTimeRange / 1000, 1);
-    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartTimeRange / 1000); SetWindowTextW(m_editChartTime, tb); }
-    lbl(LANG(61), CX, y, 60, 24); m_swChartBg = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 70, y, 30, 24, CID_SW_CHARTBG); m_lblChartBg = lbl(L"", CX + 106, y, 120, 24);
-    lbl(LANG(62), CX + 240, y, 55, 24); m_swChartLine = ctl(SWATCH_CLASS, L"", SS_NOTIFY, CX + 300, y, 30, 24, CID_SW_CHARTLINE); m_lblChartLine = lbl(L"", CX + 336, y, 120, 24);
-    y += 34;
-    { auto d1 = new SwatchData{&m_cfg->chartBgCol}; SetWindowLongPtrW(m_swChartBg, GWLP_USERDATA, (LONG_PTR)d1); InvalidateRect(m_swChartBg, nullptr, TRUE);
-        wchar_t cb[64]; swprintf(cb, 64, L"RGB(%d,%d,%d)", m_cfg->chartBgCol.r, m_cfg->chartBgCol.g, m_cfg->chartBgCol.b); SetWindowTextW(m_lblChartBg, cb);
-        auto d2 = new SwatchData{&m_cfg->chartLineCol}; SetWindowLongPtrW(m_swChartLine, GWLP_USERDATA, (LONG_PTR)d2); InvalidateRect(m_swChartLine, nullptr, TRUE);
-        swprintf(cb, 64, L"RGB(%d,%d,%d)", m_cfg->chartLineCol.r, m_cfg->chartLineCol.g, m_cfg->chartLineCol.b); SetWindowTextW(m_lblChartLine, cb); }
-    mks(CX, y, LANG(64), CID_TRACK_CHARTW, CID_EDIT_CHARTW, m_trackChartW, m_editChartW, 200, 800, m_cfg->chartW, 10);
-    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartW); SetWindowTextW(m_editChartW, tb); }
-    mks(CX, y, LANG(65), CID_TRACK_CHARTH, CID_EDIT_CHARTH, m_trackChartH, m_editChartH, 100, 600, m_cfg->chartH, 10);
-    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartH); SetWindowTextW(m_editChartH, tb); }
-    mks(CX, y, LANG(66), CID_TRACK_CHARTML, CID_EDIT_CHARTML, m_trackChartML, m_editChartML, 0, 60, m_cfg->chartMarginL, 1);
-    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartMarginL); SetWindowTextW(m_editChartML, tb); }
-    mks(CX, y, LANG(67), CID_TRACK_CHARTMR, CID_EDIT_CHARTMR, m_trackChartMR, m_editChartMR, 0, 60, m_cfg->chartMarginR, 1);
-    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartMarginR); SetWindowTextW(m_editChartMR, tb); }
-    mks(CX, y, LANG(68), CID_TRACK_CHARTMT, CID_EDIT_CHARTMT, m_trackChartMT, m_editChartMT, 0, 60, m_cfg->chartMarginT, 1);
-    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartMarginT); SetWindowTextW(m_editChartMT, tb); }
-    mks(CX, y, LANG(69), CID_TRACK_CHARTMB, CID_EDIT_CHARTMB, m_trackChartMB, m_editChartMB, 0, 60, m_cfg->chartMarginB, 1);
-    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartMarginB); SetWindowTextW(m_editChartMB, tb); }
-    mks(CX, y, LANG(63), CID_TRACK_CHARTRADIUS, CID_EDIT_CHARTRADIUS, m_trackChartRadius, m_editChartRadius, 0, 20, m_cfg->chartRadius, 1);
-    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartRadius); SetWindowTextW(m_editChartRadius, tb); }
-
-    // 7.5 吸附
-    div(y);
-    m_chkChartSnap = ctl(L"BUTTON", L"吸附到按键映射下方", BS_AUTOCHECKBOX | WS_TABSTOP, CX, y, 180, 24, CID_CHK_CHART_SNAP);
-    if (m_cfg) { SendMessageW(m_chkChartSnap, BM_SETCHECK, m_cfg->chartSnap ? BST_CHECKED : BST_UNCHECKED, 0); }
-    if (m_cfg && m_cfg->freeMode && m_chkChartSnap) EnableWindow(m_chkChartSnap, FALSE);
-    y += 28;
-    mks(CX, y, L"X 偏移 (px)", CID_TRACK_CHART_SNAPX, CID_EDIT_CHART_SNAPX, m_trackChartSnapX, m_editChartSnapX, -200, 200, m_cfg->chartSnapOffsetX, 50);
-    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartSnapOffsetX); SetWindowTextW(m_editChartSnapX, tb); }
-    mks(CX, y, L"Y 偏移 (px)", CID_TRACK_CHART_SNAPY, CID_EDIT_CHART_SNAPY, m_trackChartSnapY, m_editChartSnapY, -200, 200, m_cfg->chartSnapOffsetY, 50);
-    { wchar_t tb[16]; swprintf(tb, 16, L"%d", m_cfg->chartSnapOffsetY); SetWindowTextW(m_editChartSnapY, tb); }
-
-    // 8. Recording
-    div(y);
-    lbl(LANG(98), CX, y, 120, 20); y += 26;
-    lbl(LANG(99), CX, y, 90, 24);
-    m_btnRecordHotkey = ctl(L"BUTTON", LANG(100), BS_PUSHBUTTON | WS_TABSTOP, CX + 95, y, 200, 26, CID_BTN_RECORD_HOTKEY);
-    if (m_cfg && m_cfg->recordingHotkeyVK != 0) {
-        wchar_t kb[64];
-        UINT sc = MapVirtualKeyW((UINT)m_cfg->recordingHotkeyVK, MAPVK_VK_TO_VSC);
-        LONG lp = (sc << 16);
-        GetKeyNameTextW(lp, kb, 64);
-        SetWindowTextW(m_btnRecordHotkey, kb);
-    }
-    y += 32;
-    m_lblRecordStatus = lbl(LANG(105), CX, y, 300, 24);
-    y += 34;
-
-    // 9. Save / Reset
-    div(y);
-    m_btnResetAll = ctl(L"BUTTON", LANG(55), BS_PUSHBUTTON, CX, y, 140, 32, CID_BTN_RESET);
-    m_btnSave = ctl(L"BUTTON", LANG(22), BS_PUSHBUTTON | WS_TABSTOP, CX + 160, y, 120, 32, CID_BTN_SAVE);
-    m_btnResetTotal = ctl(L"BUTTON", LANG(23), BS_PUSHBUTTON | WS_TABSTOP, CX + 300, y, 120, 32, CID_BTN_RESET_TOTAL);
-    y += 44;
-
-    // 10. 快捷键设置
-    div(y);
-    ctl(L"BUTTON", L"快捷键设置", BS_PUSHBUTTON | WS_TABSTOP, CX, y, 140, 32, CID_BTN_HOTKEY_EDITOR);
-    y += 44;
-
-    m_contentH = y + 40;
-    SCROLLINFO si = {}; si.cbSize = sizeof(si); si.fMask = SIF_RANGE | SIF_PAGE; si.nMin = 0; si.nMax = m_contentH - 1; si.nPage = kVisibleH;
-    SetScrollInfo(hwnd, SB_VERT, &si, TRUE);
-}
-
-// ========== 命令处理 ==========
-void SettingsUI::OnCommand(WPARAM wp, LPARAM lp) {
-    int cid = LOWORD(wp);
-    int code = HIWORD(wp);
-
-    switch (cid) {
-    case CID_CHK_TOTAL:
-        if (m_cfg) { m_cfg->showTotal = (SendMessageW(m_chkTotal, BM_GETCHECK, 0, 0) == BST_CHECKED); OnSave(); }
-        break;
-    case CID_CHK_KPS:
-        if (m_cfg) { m_cfg->showKPS = (SendMessageW(m_chkKPS, BM_GETCHECK, 0, 0) == BST_CHECKED); OnSave(); }
-        break;
-    case CID_CHK_SUMMARY:
-        if (m_cfg) { m_cfg->showSummary = (SendMessageW(m_chkSummary, BM_GETCHECK, 0, 0) == BST_CHECKED); OnSave(); }
-        break;
-    case CID_CHK_HISTORY:
-        if (m_cfg) { m_cfg->showHistory = (SendMessageW(m_chkHistory, BM_GETCHECK, 0, 0) == BST_CHECKED); OnSave(); }
-        break;
-    case CID_CHK_TRACK_LINES:
-        if (m_cfg) { m_cfg->historyShowLines = (SendMessageW(m_chkTrackLines, BM_GETCHECK, 0, 0) == BST_CHECKED); OnSave(); }
-        break;
-    case CID_CHK_BPM:
-        if (m_cfg) { m_cfg->showBPM = (SendMessageW(m_chkBPM, BM_GETCHECK, 0, 0) == BST_CHECKED); OnSave(); }
-        break;
-    case CID_RADIO_NOTE8:
-        if (m_cfg && SendMessageW(m_radioNote8, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->bpmNoteDiv = 8; OnSave(); } break;
-    case CID_RADIO_NOTE16:
-        if (m_cfg && SendMessageW(m_radioNote16, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->bpmNoteDiv = 16; OnSave(); } break;
-    case CID_RADIO_NOTE32:
-        if (m_cfg && SendMessageW(m_radioNote32, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->bpmNoteDiv = 32; OnSave(); } break;
-    case CID_RADIO_NOTE64:
-        if (m_cfg && SendMessageW(m_radioNote64, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->bpmNoteDiv = 64; OnSave(); } break;
-    case CID_RADIO_LANG_CN:
-        if (m_cfg) { m_cfg->lang = 0; SetLanguage(0); OnSave(); RebuildWindow(); } break;
-    case CID_RADIO_LANG_EN:
-        if (m_cfg) { m_cfg->lang = 1; SetLanguage(1); OnSave(); RebuildWindow(); } break;
-    case CID_RADIO_LANG_JP:
-        if (m_cfg) { m_cfg->lang = 2; SetLanguage(2); OnSave(); RebuildWindow(); } break;
-    case CID_RADIO_THEME0: ApplyTheme(0); break;
-    case CID_RADIO_THEME1: ApplyTheme(1); break;
-    case CID_RADIO_THEME2: ApplyTheme(2); break;
-    case CID_RADIO_THEME3: ApplyTheme(3); break;
-    case CID_RADIO_THEME4: ApplyTheme(4); break;
-    case CID_RADIO_THEME5: ApplyTheme(5); break;
-    case CID_RADIO_THEME6: ApplyTheme(6); break;
-    case CID_RADIO_THEME7: ApplyTheme(7); break;
-    case CID_RADIO_THEME8:  ApplyTheme(8);  break;
-    case CID_RADIO_THEME9:  ApplyTheme(9);  break;
-    case CID_RADIO_THEME10: ApplyTheme(10); break;
-    case CID_RADIO_THEME11: ApplyTheme(11); break;
-    case CID_RADIO_THEME12: ApplyTheme(12); break;
-    case CID_RADIO_THEME13: ApplyTheme(13); break;
-    case CID_RADIO_THEME14: ApplyTheme(14); break;
-    case CID_RADIO_THEME15: ApplyTheme(15); break;
-    case CID_CHK_THROUGH:
-        if (m_cfg) {
-            m_cfg->clickThrough = (SendMessageW(m_chkThrough, BM_GETCHECK, 0, 0) == BST_CHECKED);
-            if (m_display) m_display->SetClickThrough(m_cfg->clickThrough);
-            OnSave();
-        }
-        break;
-    case CID_CHK_TOP_MOST:
-        if (m_cfg) {
-            m_cfg->alwaysOnTop = (SendMessageW(m_chkTopMost, BM_GETCHECK, 0, 0) == BST_CHECKED);
-            if (m_display) m_display->SetTopMost(m_cfg->alwaysOnTop);
-            if (m_chart)   m_chart->SetTopMost(m_cfg->alwaysOnTop);
-            OnSave();
-        }
-        break;
-    case CID_LIST_KEYS:
-        if (code == LBN_SELCHANGE) {
-            m_selectedKey = (int)SendMessageW(m_listKeys, LB_GETCURSEL, 0, 0);
-            if (m_selectedKey >= 0 && m_cfg && m_selectedKey < (int)m_cfg->keys.size())
-                UpdateColorSwatches(m_selectedKey);
-        }
-        break;
-    case CID_BTN_ADD:    OnAddKey();   OnSave(); break;
-    case CID_BTN_DEL:    OnDeleteKey(); OnSave(); break;
-    case CID_BTN_SAVE:   OnSave();     break;
-    case CID_BTN_RESET_TOTAL: OnResetTotals(); break;
-    case CID_BTN_RESET: OnResetDefaults(); break;
-    case CID_BTN_THEMEEDIT: if (m_themeEditor) m_themeEditor->Show(true); break;
-    case CID_BTN_HOTKEY_EDITOR: if (m_hotkeyEditor) m_hotkeyEditor->Show(true); break;
-    case CID_BTN_FONT: {
-        if (!m_cfg) break;
-        LOGFONTW lf = {};
-        lf.lfHeight = -16;
-        wcscpy_s(lf.lfFaceName, LF_FACESIZE, m_cfg->keyFontName.c_str());
-        CHOOSEFONTW cf = {sizeof(cf)};
-        cf.hwndOwner = m_hwnd;
-        cf.lpLogFont = &lf;
-        cf.Flags = CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT | CF_NOVECTORFONTS;
-        if (ChooseFontW(&cf)) {
-            m_cfg->keyFontName = lf.lfFaceName;
-            OnSave();
-            RebuildWindow();
-        }
-        break;
-    }
-    case CID_RADIO_FPS25:
-        if (m_cfg && SendMessageW(m_radioFps25, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->fps = 25; OnSave(); } break;
-    case CID_RADIO_FPS45:
-        if (m_cfg && SendMessageW(m_radioFps45, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->fps = 45; OnSave(); } break;
-    case CID_RADIO_FPS60:
-        if (m_cfg && SendMessageW(m_radioFps60, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->fps = 60; OnSave(); } break;
-    case CID_RADIO_FPS90:
-        if (m_cfg && SendMessageW(m_radioFps90, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->fps = 90; OnSave(); } break;
-    case CID_RADIO_FPS120:
-        if (m_cfg && SendMessageW(m_radioFps120, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->fps = 120; OnSave(); } break;
-    case CID_SW_FONT:    OnPickColor(0); OnSave(); break;
-    case CID_SW_NORMAL:  OnPickColor(1); OnSave(); break;
-    case CID_SW_PRESS:   OnPickColor(2); OnSave(); break;
-    case CID_SW_TOTALBG: case CID_SW_TOTALFC: case CID_SW_KPSBG: case CID_SW_KPSFC:
-    case CID_SW_BPMBG:   case CID_SW_BPMFC:   OnPickBoxColor(cid); break;
-    case CID_CHK_CHART:
-        if (m_cfg) {
-            m_cfg->showChart = (SendMessageW(m_chkChart, BM_GETCHECK, 0, 0) == BST_CHECKED);
-            if (m_chart) m_chart->Show(m_cfg->showChart);
-            OnSave();
-        }
-        break;
-    case CID_CHK_CHART_GRID:
-        if (m_cfg) { m_cfg->chartShowGrid = (SendMessageW(m_chkChartGrid, BM_GETCHECK, 0, 0) == BST_CHECKED); OnSave(); }
-        break;
-    case CID_SW_CHARTBG:  case CID_SW_CHARTLINE:  OnPickChartColor(cid); break;
-    case CID_CHK_CHART_SNAP:
-        if (m_cfg) {
-            m_cfg->chartSnap = (SendMessageW(m_chkChartSnap, BM_GETCHECK, 0, 0) == BST_CHECKED);
-            OnSave();
-        }
-        break;
-    case CID_RADIO_CHART_LINE:
-        if (m_cfg && SendMessageW(m_radioChartLine, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->chartType = 0; OnSave(); } break;
-    case CID_RADIO_CHART_SCATTER:
-        if (m_cfg && SendMessageW(m_radioChartScatter, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->chartType = 1; OnSave(); } break;
-    case CID_RADIO_CHART_BAR:
-        if (m_cfg && SendMessageW(m_radioChartBar, BM_GETCHECK, 0, 0) == BST_CHECKED)
-            { m_cfg->chartType = 2; OnSave(); } break;
-    case CID_CHK_CHART_GRADIENT:
-        if (m_cfg) {
-            m_cfg->chartGradientFill = (SendMessageW(m_chkChartGradient, BM_GETCHECK, 0, 0) == BST_CHECKED);
-            OnSave();
-        }
-        break;
-    case CID_CHK_FREE_BOUNDARY:
-        if (m_cfg) {
-            bool showBoundary = (SendMessageW(m_chkFreeBoundary, BM_GETCHECK, 0, 0) == BST_CHECKED);
-            m_cfg->freeShowBoundary = showBoundary;
-            if (!showBoundary) {
-                // 关闭边界 → 也关闭网格吸附，固定当前布局
-                m_cfg->freeGridSnap = false;
-                if (m_chkGridSnap) SendMessageW(m_chkGridSnap, BM_SETCHECK, BST_UNCHECKED, 0);
-                if (m_chkGridSnap) EnableWindow(m_chkGridSnap, FALSE);
-                if (m_trackGridSize) EnableWindow(m_trackGridSize, FALSE);
-                if (m_editGridSize) EnableWindow(m_editGridSize, FALSE);
-            } else {
-                if (m_chkGridSnap) EnableWindow(m_chkGridSnap, TRUE);
-                if (m_trackGridSize) EnableWindow(m_trackGridSize, TRUE);
-                if (m_editGridSize) EnableWindow(m_editGridSize, TRUE);
-            }
-            OnSave();
-        }
-        break;
-    case CID_RADIO_NORMAL_MODE:
-        if (m_cfg && SendMessageW(m_radioNormalMode, BM_GETCHECK, 0, 0) == BST_CHECKED) {
-            m_cfg->freeMode = false;
-            // 恢复轨道和图表吸附的可选状态
-            if (m_chkHistory) EnableWindow(m_chkHistory, TRUE);
-            if (m_chkChartSnap) EnableWindow(m_chkChartSnap, TRUE);
-            OnSave();
-        }
-        break;
-    case CID_RADIO_FREE_MODE:
-        if (m_cfg && SendMessageW(m_radioFreeMode, BM_GETCHECK, 0, 0) == BST_CHECKED) {
-            m_cfg->freeMode = true;
-            // 禁用轨道和图表吸附
-            if (m_cfg->showHistory) {
-                m_cfg->showHistory = false;
-                if (m_chkHistory) {
-                    SendMessageW(m_chkHistory, BM_SETCHECK, BST_UNCHECKED, 0);
-                }
-            }
-            if (m_cfg->chartSnap) {
-                m_cfg->chartSnap = false;
-                if (m_chkChartSnap) {
-                    SendMessageW(m_chkChartSnap, BM_SETCHECK, BST_UNCHECKED, 0);
-                }
-            }
-            if (m_chkHistory) EnableWindow(m_chkHistory, FALSE);
-            if (m_chkChartSnap) EnableWindow(m_chkChartSnap, FALSE);
-            // 初始化各元素位置
-            if (!m_cfg->keys.empty()) {
-                int ks = m_cfg->keySize;
-                int gap = m_cfg->keySpacing;
-                int pad = 10;
-                for (int i = 0; i < (int)m_cfg->keys.size(); ++i) {
-                    m_cfg->keys[i].freeX = pad + i * (ks + gap);
-                    m_cfg->keys[i].freeY = pad;
-                }
-                int nKeys = (int)m_cfg->keys.size();
-                m_cfg->freeTotalX = pad + nKeys * (ks + gap);
-                m_cfg->freeTotalY = pad;
-                m_cfg->freeKPSX = pad + (nKeys + 1) * (ks + gap);
-                m_cfg->freeKPSY = pad;
-                m_cfg->freeBPMX = pad + (nKeys + 2) * (ks + gap);
-                m_cfg->freeBPMY = pad;
-            }
-            OnSave();
-        }
-        break;
-    case CID_EDIT_KEY_NAME:
-        if (code == EN_KILLFOCUS) {
-            if (m_cfg && m_selectedKey >= 0 && m_selectedKey < (int)m_cfg->keys.size()) {
-                wchar_t buf[64];
-                GetWindowTextW(m_editKeyName, buf, 64);
-                m_cfg->keys[m_selectedKey].label = buf;
-                OnSave();
-                RefreshKeyList();
-            }
-        }
-        break;
-    case CID_EDIT_KEY_W:
-        if (code == EN_KILLFOCUS) {
-            if (m_cfg && m_selectedKey >= 0 && m_selectedKey < (int)m_cfg->keys.size()) {
-                wchar_t buf[16];
-                GetWindowTextW(m_editKeyWidth, buf, 16);
-                int v = _wtoi(buf);
-                if (v < 0) v = 0;
-                if (v > 500) v = 500;
-                m_cfg->keys[m_selectedKey].customW = v;
-                OnSave();
-            }
-        }
-        break;
-    case CID_EDIT_KEY_H:
-        if (code == EN_KILLFOCUS) {
-            if (m_cfg && m_selectedKey >= 0 && m_selectedKey < (int)m_cfg->keys.size()) {
-                wchar_t buf[16];
-                GetWindowTextW(m_editKeyHeight, buf, 16);
-                int v = _wtoi(buf);
-                if (v < 0) v = 0;
-                if (v > 500) v = 500;
-                m_cfg->keys[m_selectedKey].customH = v;
-                OnSave();
-            }
-        }
-        break;
-    case CID_CHK_GRID_SNAP:
-        if (m_cfg) {
-            // 边界隐藏时无法启用网格
-            if (!m_cfg->freeShowBoundary && SendMessageW(m_chkGridSnap, BM_GETCHECK, 0, 0) == BST_CHECKED) {
-                SendMessageW(m_chkGridSnap, BM_SETCHECK, BST_UNCHECKED, 0);
-                m_cfg->freeGridSnap = false;
-            } else {
-                m_cfg->freeGridSnap = (SendMessageW(m_chkGridSnap, BM_GETCHECK, 0, 0) == BST_CHECKED);
-            }
-            OnSave();
-        }
-        break;
-    // V1.5: 数据框宽高编辑框
-    case CID_EDIT_TOTAL_BOX_W: if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editTotalBoxW,b,16); int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->totalBoxW=v;OnSave();} } break;
-    case CID_EDIT_TOTAL_BOX_H: if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editTotalBoxH,b,16); int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->totalBoxH=v;OnSave();} } break;
-    case CID_EDIT_KPS_BOX_W:   if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editKpsBoxW,b,16);   int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->kpsBoxW=v;OnSave();} } break;
-    case CID_EDIT_KPS_BOX_H:   if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editKpsBoxH,b,16);   int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->kpsBoxH=v;OnSave();} } break;
-    case CID_EDIT_BPM_BOX_W:   if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editBpmBoxW,b,16);   int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->bpmBoxW=v;OnSave();} } break;
-    case CID_EDIT_BPM_BOX_H:   if (code == EN_KILLFOCUS && m_cfg) { wchar_t b[16]; GetWindowTextW(m_editBpmBoxH,b,16);   int v=_wtoi(b); if(v>=0&&v<=500){m_cfg->bpmBoxH=v;OnSave();} } break;
-    case CID_BTN_RECORD_HOTKEY: {
-        if (!m_cfg) break;
-        // 暂停钩子
-        KeyboardHook::SetBlocked(true);
-        SetWindowTextW(m_btnRecordHotkey, LANG(101));
-        int capturedVK = 0;
-        MSG msg;
-        while (capturedVK == 0 && GetMessageW(&msg, nullptr, 0, 0)) {
-            if (msg.message == WM_KEYDOWN) {
-                int vk = (int)msg.wParam;
-                if (vk == 229) { TranslateMessage(&msg); DispatchMessageW(&msg); continue; }
-                capturedVK = vk;
-                if (capturedVK == VK_ESCAPE) capturedVK = -1;
-                break;
-            }
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
-        }
-        KeyboardHook::SetBlocked(false);
-        if (capturedVK <= 0) {
-            SetWindowTextW(m_btnRecordHotkey, LANG(100));
-            break;
-        }
-        m_cfg->recordingHotkeyVK = capturedVK;
-        wchar_t kb[64];
-        UINT sc = MapVirtualKeyW((UINT)capturedVK, MAPVK_VK_TO_VSC);
-        LONG lp = (sc << 16);
-        GetKeyNameTextW(lp, kb, 64);
-        SetWindowTextW(m_btnRecordHotkey, kb);
-        OnSave();
-        break;
-    }
-    }
-}
-
-// ========== 滑块处理 ==========
-void SettingsUI::OnHScroll(WPARAM wp, LPARAM lp) {
-    HWND hwndTrack = (HWND)lp;
-    if (hwndTrack == m_trackSpacing && m_cfg) {
-        m_cfg->keySpacing = (int)SendMessageW(m_trackSpacing, TBM_GETPOS, 0, 0);
-        SyncSpacingEdit();
-        OnSave();
-    } else if (hwndTrack == m_trackHistoryH && m_cfg) {
-        m_cfg->historyTrackH = (int)SendMessageW(m_trackHistoryH, TBM_GETPOS, 0, 0);
-        SyncHistoryHEdit();
-        OnSave();
-    } else if (hwndTrack == m_trackGrowSpd && m_cfg) {
-        m_cfg->historyGrowSpeed = (int)SendMessageW(m_trackGrowSpd, TBM_GETPOS, 0, 0);
-        SyncGrowSpdEdit(); OnSave();
-    } else if (hwndTrack == m_trackFloatSpd && m_cfg) {
-        m_cfg->historyFloatSpeed = (int)SendMessageW(m_trackFloatSpd, TBM_GETPOS, 0, 0);
-        SyncFloatSpdEdit(); OnSave();
-    } else if (hwndTrack == m_trackBlockMax && m_cfg) {
-        m_cfg->historyBlockMax = (int)SendMessageW(m_trackBlockMax, TBM_GETPOS, 0, 0);
-        SyncBlockMaxEdit(); OnSave();
-    } else if (hwndTrack == m_trackBorder && m_cfg) {
-        m_cfg->keyBorderW = (int)SendMessageW(m_trackBorder, TBM_GETPOS, 0, 0);
-        SyncBorderEdit(); OnSave();
-    } else if (hwndTrack == m_trackOpacity && m_cfg) {
-        m_cfg->overlayOpacity = SendMessageW(m_trackOpacity, TBM_GETPOS, 0, 0) / 100.0f;
-        SyncOpacityEdit(); OnSave();
-    } else if (hwndTrack == m_trackTrackGap && m_cfg) {
-        m_cfg->historyTrackGap = (int)SendMessageW(m_trackTrackGap, TBM_GETPOS, 0, 0);
-        SyncTrackGapEdit(); OnSave();
-    } else if (hwndTrack == m_trackBpmMerge && m_cfg) {
-        m_cfg->bpmMergeMs = (int)SendMessageW(m_trackBpmMerge, TBM_GETPOS, 0, 0);
-        SyncBpmMergeEdit(); OnSave();
-    } else if (hwndTrack == m_trackTrackAlpha && m_cfg) {
-        m_cfg->historyTrackAlpha = (int)SendMessageW(m_trackTrackAlpha, TBM_GETPOS, 0, 0);
-        SyncTrackAlphaEdit(); OnSave();
-    } else if (hwndTrack == m_trackBlockAlpha && m_cfg) {
-        m_cfg->historyBlockAlpha = (int)SendMessageW(m_trackBlockAlpha, TBM_GETPOS, 0, 0);
-        SyncBlockAlphaEdit(); OnSave();
-    } else if (hwndTrack == m_trackChartTime && m_cfg) {
-        int val = (int)SendMessageW(m_trackChartTime, TBM_GETPOS, 0, 0);
-        if (val < 1) val = 1;
-        m_cfg->chartTimeRange = val * 1000;
-        wchar_t tb[16]; swprintf(tb,16,L"%d",val); SetWindowTextW(m_editChartTime,tb);
-        OnSave();
-    } else if (hwndTrack == m_trackChartRadius && m_cfg) {
-        m_cfg->chartRadius = (int)SendMessageW(m_trackChartRadius, TBM_GETPOS, 0, 0);
-        wchar_t rd[16]; swprintf(rd,16,L"%d",m_cfg->chartRadius); SetWindowTextW(m_editChartRadius,rd);
-        OnSave();
-    } else if (hwndTrack == m_trackChartW && m_cfg) {
-        m_cfg->chartW = (int)SendMessageW(m_trackChartW, TBM_GETPOS, 0, 0);
-        wchar_t wb[16]; swprintf(wb,16,L"%d",m_cfg->chartW); SetWindowTextW(m_editChartW,wb);
-        OnSave();
-    } else if (hwndTrack == m_trackChartH && m_cfg) {
-        m_cfg->chartH = (int)SendMessageW(m_trackChartH, TBM_GETPOS, 0, 0);
-        wchar_t hb[16]; swprintf(hb,16,L"%d",m_cfg->chartH); SetWindowTextW(m_editChartH,hb);
-        OnSave();
-    } else if (hwndTrack == m_trackChartML && m_cfg) {
-        m_cfg->chartMarginL = (int)SendMessageW(m_trackChartML, TBM_GETPOS, 0, 0);
-        wchar_t b[16]; swprintf(b,16,L"%d",m_cfg->chartMarginL); SetWindowTextW(m_editChartML,b); OnSave();
-    } else if (hwndTrack == m_trackChartMR && m_cfg) {
-        m_cfg->chartMarginR = (int)SendMessageW(m_trackChartMR, TBM_GETPOS, 0, 0);
-        wchar_t b[16]; swprintf(b,16,L"%d",m_cfg->chartMarginR); SetWindowTextW(m_editChartMR,b); OnSave();
-    } else if (hwndTrack == m_trackChartMT && m_cfg) {
-        m_cfg->chartMarginT = (int)SendMessageW(m_trackChartMT, TBM_GETPOS, 0, 0);
-        wchar_t b[16]; swprintf(b,16,L"%d",m_cfg->chartMarginT); SetWindowTextW(m_editChartMT,b); OnSave();
-    } else if (hwndTrack == m_trackChartMB && m_cfg) {
-        m_cfg->chartMarginB = (int)SendMessageW(m_trackChartMB, TBM_GETPOS, 0, 0);
-        wchar_t b[16]; swprintf(b,16,L"%d",m_cfg->chartMarginB); SetWindowTextW(m_editChartMB,b); OnSave();
-    } else if (hwndTrack == m_trackChartSnapX && m_cfg) {
-        m_cfg->chartSnapOffsetX = (int)SendMessageW(m_trackChartSnapX, TBM_GETPOS, 0, 0);
-        wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->chartSnapOffsetX); SetWindowTextW(m_editChartSnapX,tb);
-        OnSave();
-    } else if (hwndTrack == m_trackChartSnapY && m_cfg) {
-        m_cfg->chartSnapOffsetY = (int)SendMessageW(m_trackChartSnapY, TBM_GETPOS, 0, 0);
-        wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->chartSnapOffsetY); SetWindowTextW(m_editChartSnapY,tb);
-        OnSave();
-    } else if (hwndTrack == m_trackFreeAreaW && m_cfg) {
-        m_cfg->freeAreaW = (int)SendMessageW(m_trackFreeAreaW, TBM_GETPOS, 0, 0);
-        wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeAreaW); SetWindowTextW(m_editFreeAreaW,tb);
-        OnSave();
-    } else if (hwndTrack == m_trackFreeAreaH && m_cfg) {
-        m_cfg->freeAreaH = (int)SendMessageW(m_trackFreeAreaH, TBM_GETPOS, 0, 0);
-        wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeAreaH); SetWindowTextW(m_editFreeAreaH,tb);
-        OnSave();
-    } else if (hwndTrack == m_trackGridSize && m_cfg) {
-        m_cfg->freeGridSize = (int)SendMessageW(m_trackGridSize, TBM_GETPOS, 0, 0);
-        wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeGridSize); SetWindowTextW(m_editGridSize,tb);
-        OnSave();
-    }
-}
-
-// ========== 滚动条处理 ==========
-void SettingsUI::OnVScroll(WPARAM wp, LPARAM lp) {
-    int action = LOWORD(wp);
-    int newY   = m_scrollY;
-    switch (action) {
-    case SB_LINEUP:        newY -= 30; break;
-    case SB_LINEDOWN:      newY += 30; break;
-    case SB_PAGEUP:        newY -= kVisibleH; break;
-    case SB_PAGEDOWN:      newY += kVisibleH; break;
-    case SB_THUMBTRACK:
-    case SB_THUMBPOSITION: newY = HIWORD(wp); break;
-    }
-    if (newY < 0) newY = 0;
-    if (newY > m_contentH - (int)kVisibleH) newY = m_contentH - kVisibleH;
-    if (newY == m_scrollY) return;
-
-    int dy = m_scrollY - newY;
-    m_scrollY = newY;
-    // 手动偏移所有子控件位置（避免 ScrollWindowEx 导致的绘制错位）
-    for (HWND child = GetWindow(m_hwnd, GW_CHILD); child; child = GetWindow(child, GW_HWNDNEXT)) {
-        RECT rc; GetWindowRect(child, &rc);
-        POINT pt = {rc.left, rc.top};
-        ScreenToClient(m_hwnd, &pt);
-        SetWindowPos(child, nullptr, pt.x, pt.y + dy, 0, 0,
-                     SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-    }
-    SetScrollPos(m_hwnd, SB_VERT, m_scrollY, TRUE);
-    InvalidateRect(m_hwnd, nullptr, TRUE);
-}
-
-void SettingsUI::OnMouseWheel(WPARAM wp) {
-    int delta = GET_WHEEL_DELTA_WPARAM(wp) / WHEEL_DELTA;
-    int newY = m_scrollY - delta * 30;
-    if (newY < 0) newY = 0;
-    if (newY > m_contentH - (int)kVisibleH) newY = m_contentH - kVisibleH;
-    if (newY == m_scrollY) return;
-
-    int dy = m_scrollY - newY;
-    m_scrollY = newY;
-    for (HWND child = GetWindow(m_hwnd, GW_CHILD); child; child = GetWindow(child, GW_HWNDNEXT)) {
-        RECT rc; GetWindowRect(child, &rc);
-        POINT pt = {rc.left, rc.top};
-        ScreenToClient(m_hwnd, &pt);
-        SetWindowPos(child, nullptr, pt.x, pt.y + dy, 0, 0,
-                     SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-    }
-    SetScrollPos(m_hwnd, SB_VERT, m_scrollY, TRUE);
-    InvalidateRect(m_hwnd, nullptr, TRUE);
-}
-
-void SettingsUI::SyncSpacingEdit() {
-    if (m_cfg && m_editSpacing) {
-        wchar_t buf[16];
-        swprintf(buf, 16, L"%d", m_cfg->keySpacing);
-        SetWindowTextW(m_editSpacing, buf);
-    }
-}
-
-void SettingsUI::SyncHistoryHEdit() {
-    if (m_cfg && m_editHistoryH) {
-        wchar_t buf[16];
-        swprintf(buf, 16, L"%d", m_cfg->historyTrackH);
-        SetWindowTextW(m_editHistoryH, buf);
-    }
-}
-
-void SettingsUI::SyncGrowSpdEdit() {
-    if (m_cfg && m_editGrowSpd) {
-        wchar_t buf[16];
-        swprintf(buf, 16, L"%d", m_cfg->historyGrowSpeed);
-        SetWindowTextW(m_editGrowSpd, buf);
-    }
-}
-
-void SettingsUI::SyncFloatSpdEdit() {
-    if (m_cfg && m_editFloatSpd) {
-        wchar_t buf[16];
-        swprintf(buf, 16, L"%d", m_cfg->historyFloatSpeed);
-        SetWindowTextW(m_editFloatSpd, buf);
-    }
-}
-
-void SettingsUI::SyncBlockMaxEdit() {
-    if (m_cfg && m_editBlockMax) {
-        wchar_t buf[16];
-        swprintf(buf, 16, L"%d", m_cfg->historyBlockMax);
-        SetWindowTextW(m_editBlockMax, buf);
-    }
-}
-
-void SettingsUI::SyncBorderEdit() {
-    if (m_cfg && m_editBorder) {
-        wchar_t buf[16];
-        swprintf(buf, 16, L"%d", m_cfg->keyBorderW);
-        SetWindowTextW(m_editBorder, buf);
-    }
-}
-
-void SettingsUI::SyncOpacityEdit() {
-    if (m_cfg && m_editOpacity) {
-        wchar_t buf[16];
-        swprintf(buf, 16, L"%d", (int)(m_cfg->overlayOpacity * 100));
-        SetWindowTextW(m_editOpacity, buf);
-    }
-}
-
-void SettingsUI::SyncTrackGapEdit() {
-    if (m_cfg && m_editTrackGap) {
-        wchar_t buf[16];
-        swprintf(buf, 16, L"%d", m_cfg->historyTrackGap);
-        SetWindowTextW(m_editTrackGap, buf);
-    }
-}
-
-void SettingsUI::SyncBpmMergeEdit() {
-    if (m_cfg && m_editBpmMerge) {
-        wchar_t buf[16];
-        swprintf(buf, 16, L"%d", m_cfg->bpmMergeMs);
-        SetWindowTextW(m_editBpmMerge, buf);
-    }
-}
-
-void SettingsUI::SyncTrackAlphaEdit() {
-    if (m_cfg && m_editTrackAlpha) {
-        wchar_t buf[16]; swprintf(buf,16,L"%d",m_cfg->historyTrackAlpha);
-        SetWindowTextW(m_editTrackAlpha,buf);
-    }
-}
-
-void SettingsUI::SyncBlockAlphaEdit() {
-    if (m_cfg && m_editBlockAlpha) {
-        wchar_t buf[16]; swprintf(buf,16,L"%d",m_cfg->historyBlockAlpha);
-        SetWindowTextW(m_editBlockAlpha,buf);
-    }
-}
-
-// ========== 按键列表刷新 ==========
-void SettingsUI::RefreshKeyList() {
-    if (!m_listKeys || !m_cfg) return;
-    SendMessageW(m_listKeys, LB_RESETCONTENT, 0, 0);
-    for (auto& kc : m_cfg->keys) {
-        wchar_t buf[128];
-        int kw = kc.customW > 0 ? kc.customW : m_cfg->keySize;
-        int kh = kc.customH > 0 ? kc.customH : m_cfg->keySize;
-        if (kc.customW > 0 || kc.customH > 0) {
-            swprintf(buf, 128, L"%s  [%dx%d]  (VK:%d)", kc.label.c_str(), kw, kh, kc.keyCode);
-        } else {
-            swprintf(buf, 128, L"%s  (VK:%d)", kc.label.c_str(), kc.keyCode);
-        }
-        SendMessageW(m_listKeys, LB_ADDSTRING, 0, (LPARAM)buf);
-    }
-    m_selectedKey = -1;
-    UpdateColorSwatches(-1);
-}
-
-// ========== 色块更新 ==========
-void SettingsUI::UpdateColorSwatches(int selIdx) {
-    if (!m_cfg) return;
-    wchar_t buf[64];
-
-    if (selIdx >= 0 && selIdx < (int)m_cfg->keys.size()) {
-        auto& kc = m_cfg->keys[selIdx];
-        auto setSw = [&](HWND sw, RgbaColor* c) {
-            // 清理旧数据
-            auto* old = reinterpret_cast<SwatchData*>(GetWindowLongPtrW(sw, GWLP_USERDATA));
-            delete old;
-            auto* sd = new SwatchData{c};
-            SetWindowLongPtrW(sw, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(sd));
-            InvalidateRect(sw, nullptr, TRUE);
-        };
-        setSw(m_swFont,   &kc.colorFont);
-        setSw(m_swNormal, &kc.colorNormal);
-        setSw(m_swPress,  &kc.colorPress);
-
-        swprintf(buf, 64, L"RGB(%d,%d,%d)", kc.colorFont.r, kc.colorFont.g, kc.colorFont.b);
-        SetWindowTextW(m_lblFont, buf);
-        swprintf(buf, 64, L"RGB(%d,%d,%d)", kc.colorNormal.r, kc.colorNormal.g, kc.colorNormal.b);
-        SetWindowTextW(m_lblNormal, buf);
-        swprintf(buf, 64, L"RGB(%d,%d,%d)", kc.colorPress.r, kc.colorPress.g, kc.colorPress.b);
-        SetWindowTextW(m_lblPress, buf);
-        // V1.5: 同步按键名称 + 宽高
-        SetWindowTextW(m_editKeyName, kc.label.c_str());
-        EnableWindow(m_editKeyName, TRUE);
-        wchar_t wb[16]; swprintf(wb, 16, L"%d", kc.customW); SetWindowTextW(m_editKeyWidth, wb);
-        wchar_t hb[16]; swprintf(hb, 16, L"%d", kc.customH); SetWindowTextW(m_editKeyHeight, hb);
-        EnableWindow(m_editKeyWidth, TRUE);
-        EnableWindow(m_editKeyHeight, TRUE);
-    } else {
-        auto setEmpty = [&](HWND sw, HWND lbl) {
-            delete reinterpret_cast<SwatchData*>(GetWindowLongPtrW(sw, GWLP_USERDATA));
-            SetWindowLongPtrW(sw, GWLP_USERDATA, 0);
-            InvalidateRect(sw, nullptr, TRUE);
-            SetWindowTextW(lbl, L"-");
-        };
-        setEmpty(m_swFont,   m_lblFont);
-        setEmpty(m_swNormal, m_lblNormal);
-        setEmpty(m_swPress,  m_lblPress);
-        // V1.5: 清空名称 + 宽高
-        SetWindowTextW(m_editKeyName, L"");
-        EnableWindow(m_editKeyName, FALSE);
-        SetWindowTextW(m_editKeyWidth, L"64");
-        SetWindowTextW(m_editKeyHeight, L"64");
-        EnableWindow(m_editKeyWidth, FALSE);
-        EnableWindow(m_editKeyHeight, FALSE);
-    }
-}
-
-// ========== 添加 / 删除 按键 ==========
-void SettingsUI::OnAddKey() {
-    if (!m_cfg) return;
-
-    HWND capWnd = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
-        L"STATIC", LANG(28),
-        WS_POPUP | WS_CAPTION | SS_CENTER | WS_VISIBLE,
-        400, 300, 320, 80, m_hwnd, nullptr, m_hInst, nullptr);
-    if (!capWnd) return;
-
-    // 暂停全局钩子，避免按键被两边同时处理
-    KeyboardHook::SetBlocked(true);
-    MouseHook::SetBlocked(true);
-
-    int capturedVK = 0;
-    MSG msg;
-    while (capturedVK == 0 && GetMessageW(&msg, nullptr, 0, 0)) {
-        if (msg.message == WM_KEYDOWN) {
-            int vk = (int)msg.wParam;
-            // 跳过 IME 虚拟键和无效键
-            if (vk == 229) { TranslateMessage(&msg); DispatchMessageW(&msg); continue; }
-            capturedVK = vk;
-            if (capturedVK == VK_ESCAPE) capturedVK = -1;
-            break;
-        }
-        // 检测鼠标按键
-        if (msg.message == WM_LBUTTONDOWN) { capturedVK = VK_LBUTTON; break; }
-        if (msg.message == WM_RBUTTONDOWN) { capturedVK = VK_RBUTTON; break; }
-        if (msg.message == WM_MBUTTONDOWN) { capturedVK = VK_MBUTTON; break; }
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
-    }
-    DestroyWindow(capWnd);
-
-    // 恢复全局钩子
+// ========== 捕获完成回调 ==========
+static void OnKeyCaptured(int vk, AppConfig* cfg, SettingsUI* self) {
     KeyboardHook::SetBlocked(false);
     MouseHook::SetBlocked(false);
-
-    if (capturedVK <= 0) return;
-
-    // ===== 获取按键名（多层回退） =====
-    wchar_t keyName[64] = {};
-
-    // 第 1 层：GetKeyNameTextW（标准方式）
-    UINT scanCode = MapVirtualKeyW(capturedVK, MAPVK_VK_TO_VSC);
-    bool isExtended = false;
-    switch (capturedVK) {
-    case VK_LEFT: case VK_UP: case VK_RIGHT: case VK_DOWN:
-    case VK_PRIOR: case VK_NEXT: case VK_END: case VK_HOME:
-    case VK_INSERT: case VK_DELETE: case VK_DIVIDE:
-    case VK_NUMLOCK:
-        isExtended = true; break;
-    }
-    LONG lParam = (scanCode << 16);
-    if (isExtended) lParam |= 0x01000000;
-    int nameLen = GetKeyNameTextW(lParam, keyName, 64);
-
-    // 第 2 层：MapVirtualKeyW(MAPVK_VK_TO_CHAR) 获取字符
-    if (nameLen == 0) {
-        UINT ch = MapVirtualKeyW(capturedVK, MAPVK_VK_TO_CHAR);
-        if (ch > 0) { keyName[0] = (wchar_t)ch; keyName[1] = L'\0'; nameLen = 1; }
-    }
-
-    // 第 3 层：ToUnicode（可打印字符）
-    if (nameLen == 0) {
-        BYTE state[256] = {};
-        wchar_t ch = 0;
-        GetKeyboardState(state);
-        if (ToUnicode(capturedVK, scanCode, state, &ch, 1, 0) >= 1 && ch >= 0x20) {
-            keyName[0] = ch; keyName[1] = L'\0'; nameLen = 1;
+    g_capturedVK = 0;
+    s_captureState = 0;
+    if (vk == VK_ESCAPE) return;
+    if (cfg) {
+        // 添加按键
+        bool dup = false;
+        for (auto& kc : cfg->keys) { if (kc.keyCode == vk) { dup = true; break; } }
+        if (!dup) {
+            char keyName[64] = {}; GetKeyNameText(vk, keyName, 64);
+            std::wstring wname;
+            int len = MultiByteToWideChar(CP_UTF8, 0, keyName, -1, nullptr, 0);
+            wname.resize(len);
+            MultiByteToWideChar(CP_UTF8, 0, keyName, -1, &wname[0], len);
+            while (!wname.empty() && wname.back() == L'\0') wname.pop_back();
+            KeyConfig kc; kc.keyCode = vk; kc.label = wname;
+            kc.customW = 64; kc.customH = 64;
+            cfg->keys.push_back(kc);
         }
     }
-
-    // 第 4 层：已知虚拟键名表
-    if (nameLen == 0) {
-        struct VKName { int vk; const wchar_t* n; };
-        static const VKName table[] = {
-            {VK_LBUTTON,L"LBtn"},{VK_RBUTTON,L"RBtn"},{VK_MBUTTON,L"MBtn"},
-            {VK_BACK,L"Backspace"},{VK_TAB,L"Tab"},{VK_RETURN,L"Enter"},
-            {VK_SHIFT,L"Shift"},{VK_CONTROL,L"Ctrl"},{VK_MENU,L"Alt"},
-            {VK_PAUSE,L"Pause"},{VK_CAPITAL,L"CapsLock"},{VK_ESCAPE,L"Esc"},
-            {VK_SPACE,L"Space"},
-            {VK_PRIOR,L"PgUp"},{VK_NEXT,L"PgDn"},{VK_END,L"End"},{VK_HOME,L"Home"},
-            {VK_LEFT,L"←"},{VK_UP,L"↑"},{VK_RIGHT,L"→"},{VK_DOWN,L"↓"},
-            {VK_SNAPSHOT,L"PrtSc"},{VK_INSERT,L"Ins"},{VK_DELETE,L"Del"},
-            {VK_LWIN,L"LWin"},{VK_RWIN,L"RWin"},{VK_APPS,L"Menu"},
-            {VK_NUMPAD0,L"Num0"},{VK_NUMPAD1,L"Num1"},{VK_NUMPAD2,L"Num2"},
-            {VK_NUMPAD3,L"Num3"},{VK_NUMPAD4,L"Num4"},{VK_NUMPAD5,L"Num5"},
-            {VK_NUMPAD6,L"Num6"},{VK_NUMPAD7,L"Num7"},{VK_NUMPAD8,L"Num8"},
-            {VK_NUMPAD9,L"Num9"},{VK_MULTIPLY,L"Num*"},{VK_ADD,L"Num+"},
-            {VK_SUBTRACT,L"Num-"},{VK_DECIMAL,L"Num."},{VK_DIVIDE,L"Num/"},
-            {VK_NUMLOCK,L"NumLock"},{VK_SCROLL,L"ScrLk"},
-            {VK_LSHIFT,L"LShift"},{VK_RSHIFT,L"RShift"},
-            {VK_LCONTROL,L"LCtrl"},{VK_RCONTROL,L"RCtrl"},
-            {VK_LMENU,L"LAlt"},{VK_RMENU,L"RAlt"},
-            {VK_OEM_1,L";:"},{VK_OEM_2,L"/?"},{VK_OEM_3,L"`~"},
-            {VK_OEM_4,L"[{"},{VK_OEM_5,L"\\|"},{VK_OEM_6,L"]}"},
-            {VK_OEM_7,L"'\"'"},{VK_OEM_COMMA,L",<"},{VK_OEM_PERIOD,L".>"},
-            {VK_OEM_MINUS,L"-_"},{VK_OEM_PLUS,L"=+"},
-        };
-        for (auto& e : table) {
-            if (e.vk == capturedVK) { wcscpy_s(keyName, 64, e.n); nameLen = (int)wcslen(keyName); break; }
-        }
-    }
-
-    // 第 5 层：F1-F24
-    if (nameLen == 0 && capturedVK >= VK_F1 && capturedVK <= VK_F24) {
-        swprintf(keyName, 64, L"F%d", capturedVK - VK_F1 + 1);
-        nameLen = (int)wcslen(keyName);
-    }
-
-    // 最后回退
-    if (nameLen == 0) {
-        swprintf(keyName, 64, L"VK_%d", capturedVK);
-    }
-
-    // 检查重复
-    for (auto& kc : m_cfg->keys) {
-        if (kc.keyCode == capturedVK) {
-            MessageBoxW(m_hwnd, LANG(29), LANG(30), MB_ICONWARNING);
-            return;
-        }
-    }
-
-    KeyConfig kc;
-    kc.keyCode     = capturedVK;
-    kc.label       = keyName;
-    kc.colorFont   = {235, 235, 245, 255};
-    kc.colorNormal = {48,  48,  48,  200};
-    kc.colorPress  = {255, 95,  95,  255};
-    kc.customW     = 64;
-    kc.customH     = 64;
-    m_cfg->keys.push_back(kc);
-    RefreshKeyList();
 }
 
-void SettingsUI::OnDeleteKey() {
-    if (!m_cfg) return;
-    int sel = (int)SendMessageW(m_listKeys, LB_GETCURSEL, 0, 0);
-    if (sel < 0 || sel >= (int)m_cfg->keys.size()) {
-        MessageBoxW(m_hwnd, LANG(31), LANG(32), MB_ICONINFORMATION);
-        return;
+// ========== ImGui 渲染主入口（含主题编辑器/快捷键编辑器集成） ==========
+bool SettingsUI::RenderImGui() {
+    if (!m_visible || !m_hwnd || !m_cfg) return false;
+    if (s_inModalDialog) return false;
+
+    ImGui_BeginFrame();
+
+    // ===== 设置面板主窗口 =====
+    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(660, 650), ImGuiCond_Once);
+    ImGui::Begin("KeyState V1.6", &m_visible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
+
+    // ImGui 关闭按钮联动隐藏
+    if (!m_visible) { ImGui::End(); ImGui_EndFrame(); return true; }
+
+    // 使用 ## 隐藏 ID 确保语言变化不导致 ImGui 重新识别标签
+    static int s_tab = 0;
+    m_activeTab = s_tab;
+
+    if (ImGui::BeginTabBar("MainTabs", ImGuiTabBarFlags_FittingPolicyScroll)) {
+        char tabLabel[64];
+        snprintf(tabLabel, 64, "%s##t0", S(83));
+        if (ImGui::BeginTabItem(tabLabel)) { s_tab = 0; DrawPageBasic();  ImGui::EndTabItem(); }
+        snprintf(tabLabel, 64, "%s##t1", S(84));
+        if (ImGui::BeginTabItem(tabLabel)) { s_tab = 1; DrawPageTrack();  ImGui::EndTabItem(); }
+        snprintf(tabLabel, 64, "%s##t2", S(87));
+        if (ImGui::BeginTabItem(tabLabel)) { s_tab = 2; DrawPageKeys();   ImGui::EndTabItem(); }
+        snprintf(tabLabel, 64, "%s##t3", S(85));
+        if (ImGui::BeginTabItem(tabLabel)) { s_tab = 3; DrawPageTheme();  ImGui::EndTabItem(); }
+        snprintf(tabLabel, 64, "%s##t4", S(86));
+        if (ImGui::BeginTabItem(tabLabel)) { s_tab = 4; DrawPageChart();  ImGui::EndTabItem(); }
+        snprintf(tabLabel, 64, "%s##t5", S(98));
+        if (ImGui::BeginTabItem(tabLabel)) { s_tab = 5; DrawPageRecording(); ImGui::EndTabItem(); }
+        snprintf(tabLabel, 64, "%s##t6", S(151));
+        if (ImGui::BeginTabItem(tabLabel)) { s_tab = 6; DrawPageHotkeys(); ImGui::EndTabItem(); }
+        ImGui::EndTabBar();
     }
-    if (m_cfg->keys.size() <= 1) {
-        MessageBoxW(m_hwnd, LANG(33), LANG(34), MB_ICONWARNING);
-        return;
+
+    // === 按键捕获弹窗（每帧检查，持续显示直到捕获完成） ===
+    if (s_captureState == 1 || s_captureState == 2) {
+        const char* popupName = (s_captureState == 1) ? S(135) : S(136);
+        ImGui::OpenPopup(popupName);
+        if (ImGui::BeginPopupModal(popupName, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::TextUnformatted(S(28));
+            int vk = g_capturedVK;
+            if (vk > 0) {
+                if (s_captureState == 1) {
+                    OnKeyCaptured(vk, m_cfg, this);
+                } else {
+                    KeyboardHook::SetBlocked(false);
+                    MouseHook::SetBlocked(false);
+                    g_capturedVK = 0;
+                    s_captureState = 0;
+                    if (vk != VK_ESCAPE) { m_cfg->recordingHotkeyVK = vk; OnSave(); }
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            if (ImGui::Button(S(133), ImVec2(80, 0))) {
+                KeyboardHook::SetBlocked(false);
+                MouseHook::SetBlocked(false);
+                g_capturedVK = 0;
+                s_captureState = 0;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
     }
-    m_cfg->keys.erase(m_cfg->keys.begin() + sel);
-    RefreshKeyList();
+
+    ImGui::End();
+
+    // ===== 同一帧内渲染主题编辑器（如有需要） =====
+    if (m_themeEditor && m_themeEditor->IsVisible())
+        m_themeEditor->RenderContent();
+
+    ImGui_EndFrame();
+    return true;
 }
 
-// ========== Box 颜色选取 ==========
-void SettingsUI::OnPickBoxColor(int cid) {
+// ========== 基本设置页 ==========
+void SettingsUI::DrawPageBasic() {
     if (!m_cfg) return;
-    RgbaColor* p = nullptr;
-    int swIdx = cid - CID_SW_TOTALBG;
-    switch(cid) {
-        case CID_SW_TOTALBG: p=&m_cfg->totalBoxBg; break;
-        case CID_SW_TOTALFC: p=&m_cfg->totalBoxFc; break;
-        case CID_SW_KPSBG:   p=&m_cfg->kpsBoxBg;   break;
-        case CID_SW_KPSFC:   p=&m_cfg->kpsBoxFc;   break;
-        case CID_SW_BPMBG:   p=&m_cfg->bpmBoxBg;   break;
-        case CID_SW_BPMFC:   p=&m_cfg->bpmBoxFc;   break;
+    ImGui::SeparatorText(S(24));
+    int langs[3] = {0, 1, 2};
+    const char* langLabels[] = {S(25), S(26), S(27)};
+    for (int i = 0; i < 3; ++i) {
+        if (i > 0) ImGui::SameLine();
+        if (ImGui::RadioButton(langLabels[i], &m_cfg->lang, langs[i])) { SetLanguage(m_cfg->lang); OnSave(); }
     }
-    if(!p) return;
-    static COLORREF cust[16]={};
-    CHOOSECOLORW cc={}; cc.lStructSize=sizeof(cc); cc.hwndOwner=m_hwnd;
-    cc.rgbResult=RGB(p->r,p->g,p->b); cc.lpCustColors=cust; cc.Flags=CC_RGBINIT|CC_FULLOPEN;
-    if(ChooseColorW(&cc)){
-        p->r=GetRValue(cc.rgbResult); p->g=GetGValue(cc.rgbResult); p->b=GetBValue(cc.rgbResult);
-        if(swIdx>=0&&swIdx<6){ InvalidateRect(m_swBox[swIdx],nullptr,TRUE); }
+    ImGui::Spacing(); ImGui::SeparatorText(S(1));
+    if (ImGui::Checkbox(S(2), &m_cfg->showTotal)) OnSave();
+    ImGui::SameLine(120);
+    if (ImGui::Checkbox(S(3), &m_cfg->showKPS)) OnSave();
+    ImGui::SameLine(240);
+    if (ImGui::Checkbox(S(4), &m_cfg->showSummary)) OnSave();
+    if (ImGui::Checkbox(S(6), &m_cfg->showBPM)) OnSave();
+    ImGui::SameLine(120);
+    if (ImGui::Checkbox(S(7), &m_cfg->clickThrough)) {
+        if (m_display) m_display->SetClickThrough(m_cfg->clickThrough);
+        if (m_cfg->freeMode && m_cfg->clickThrough) m_cfg->freeShowBoundary = false;
+        OnSave();
+    }
+    ImGui::SameLine(240);
+    if (ImGui::Checkbox(S(88), &m_cfg->alwaysOnTop)) {
+        if (m_display) m_display->SetTopMost(m_cfg->alwaysOnTop);
+        if (m_chart) m_chart->SetTopMost(m_cfg->alwaysOnTop);
+        OnSave();
+    }
+
+    ImGui::Spacing(); ImGui::SeparatorText("BPM");
+    ImGui::TextUnformatted(S(138)); ImGui::SameLine(80);
+    int noteDivs[] = {8, 16, 32, 64};
+    const char* noteLabels[] = {S(37), S(38), S(39), S(40)};
+    for (int i = 0; i < 4; ++i) {
+        if (i > 0) ImGui::SameLine();
+        if (ImGui::RadioButton(noteLabels[i], &m_cfg->bpmNoteDiv, noteDivs[i])) OnSave();
+    }
+    SliderRow(S(44), &m_cfg->bpmMergeMs, 0, 100, [&]{ OnSave(); }, 160);
+
+    ImGui::Spacing(); ImGui::SeparatorText(S(146));
+    ImGui::Text("%s", ToUtf8(m_cfg->keyFontName)); ImGui::SameLine();
+    if (ImGui::Button(S(140))) {
+        LOGFONTW lf = {}; lf.lfHeight = -16;
+        wcscpy_s(lf.lfFaceName, LF_FACESIZE, m_cfg->keyFontName.c_str());
+        CHOOSEFONTW cf = {sizeof(cf)}; cf.hwndOwner = m_hwnd; cf.lpLogFont = &lf;
+        cf.Flags = CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT | CF_NOVECTORFONTS;
+        s_inModalDialog = true;
+        if (ChooseFontW(&cf)) { m_cfg->keyFontName = lf.lfFaceName; OnSave(); }
+        s_inModalDialog = false;
+    }
+
+    ImGui::Spacing(); ImGui::SeparatorText("FPS");
+    int fpsVals[] = {25, 45, 60, 90, 120};
+    const char* fpsLabels[] = {"25", "45", "60", "90", "120"};
+    for (int i = 0; i < 5; ++i) {
+        if (i > 0) ImGui::SameLine();
+        if (ImGui::RadioButton(fpsLabels[i], &m_cfg->fps, fpsVals[i])) OnSave();
+    }
+
+    // 不透明度：使用 0~100 整数，自动转换
+    ImGui::Spacing(); ImGui::SeparatorText(S(145));
+    int opacityPct = (int)(m_cfg->overlayOpacity * 100);
+    ImGui::TextUnformatted(S(54)); ImGui::SameLine(160);
+    ImGui::SetNextItemWidth(220);
+    if (ImGui::SliderInt("##sOpacity", &opacityPct, 0, 100, "%d%%")) {
+        m_cfg->overlayOpacity = opacityPct / 100.0f;  // 同步到配置，防止下帧重置
+    }
+    if (ImGui::IsItemDeactivatedAfterEdit()) { OnSave(); }
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(80);
+    if (ImGui::InputInt("##iOpacity", &opacityPct, 1, 10)) {
+        if (opacityPct < 0) opacityPct = 0;
+        if (opacityPct > 100) opacityPct = 100;
+        m_cfg->overlayOpacity = opacityPct / 100.0f;
+    }
+    if (ImGui::IsItemDeactivatedAfterEdit()) { OnSave(); }
+
+    ImGui::Spacing(); ImGui::SeparatorText(S(152));
+    int curTheme = m_cfg->uiTheme;
+    if (ImGui::RadioButton(S(153), curTheme == 0)) { m_cfg->uiTheme = 0; ApplyImGuiTheme(0); OnSave(); }
+    ImGui::SameLine();
+    if (ImGui::RadioButton(S(154), curTheme == 1)) { m_cfg->uiTheme = 1; ApplyImGuiTheme(1); OnSave(); }
+    ImGui::SameLine();
+    if (ImGui::RadioButton(S(155), curTheme == 2)) { m_cfg->uiTheme = 2; ApplyImGuiTheme(2); OnSave(); }
+    ImGui::SameLine();
+    if (ImGui::RadioButton(S(156), curTheme == 3)) { m_cfg->uiTheme = 3; ApplyImGuiTheme(3); OnSave(); }
+    ImGui::SameLine();
+    if (ImGui::RadioButton(S(157), curTheme == 4)) { m_cfg->uiTheme = 4; ApplyImGuiTheme(4); OnSave(); }
+    ImGui::SameLine();
+    if (ImGui::RadioButton(S(158), curTheme == 5)) { m_cfg->uiTheme = 5; ApplyImGuiTheme(5); OnSave(); }
+    ImGui::SameLine();
+    if (ImGui::RadioButton(S(159), curTheme == 6)) { m_cfg->uiTheme = 6; ApplyImGuiTheme(6); OnSave(); }
+
+    ImGui::Spacing(); ImGui::Separator();
+    if (ImGui::Button(S(22), ImVec2(140, 32))) OnSave();
+    ImGui::SameLine();
+    if (ImGui::Button(S(23), ImVec2(120, 32))) { if (m_ksm) m_ksm->ResetTotals(); OnSave(); }
+    ImGui::SameLine();
+    if (ImGui::Button(S(55), ImVec2(140, 32))) ImGui::OpenPopup(S(134));
+    if (ImGui::BeginPopupModal(S(134), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextWrapped(S(56));
+        if (ImGui::Button(S(132), ImVec2(80, 0))) {
+            bool chartWasVisible = m_cfg->showChart;
+            *m_cfg = AppConfig{};
+            ApplyImGuiTheme(0);
+            m_cfg->keys.push_back({32, L"Space", {235,235,245,255}, {48,48,48,200}, {255,95,95,255}});
+            m_cfg->keys.push_back({65, L"A",     {235,235,245,255}, {48,48,48,200}, {95,255,95,255}});
+            m_cfg->keys.push_back({83, L"S",     {235,235,245,255}, {48,48,48,200}, {95,130,255,255}});
+            m_cfg->keys.push_back({68, L"D",     {235,235,245,255}, {48,48,48,200}, {255,210,60,255}});
+            if (m_chart && chartWasVisible) m_chart->Show(false);
+            OnSave(); ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(S(133), ImVec2(80, 0))) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+}
+
+// ========== 轨道设置页 ==========
+void SettingsUI::DrawPageTrack() {
+    if (!m_cfg) return;
+    ImGui::SeparatorText(S(5));
+    ImGui::BeginDisabled(m_cfg->freeMode);
+    if (ImGui::Checkbox(S(5), &m_cfg->showHistory)) OnSave();
+    ImGui::EndDisabled();
+    ImGui::SameLine(140);
+    if (ImGui::Checkbox(S(89), &m_cfg->historyShowLines)) OnSave();
+    ImGui::Spacing(); ImGui::SeparatorText(S(141));
+    ImGui::TextUnformatted(S(164)); ImGui::SameLine(60);
+    bool up = !m_cfg->historyTrackReverse, down = m_cfg->historyTrackReverse;
+    if (ImGui::RadioButton(S(114), up)) { m_cfg->historyTrackReverse = false; OnSave(); }
+    ImGui::SameLine(160);
+    if (ImGui::RadioButton(S(115), down)) { m_cfg->historyTrackReverse = true; OnSave(); }
+    auto sv = [&]{ OnSave(); };
+    ImGui::SeparatorText(S(116));
+    SliderRow(S(10), &m_cfg->historyTrackH, 20, 600, sv, 180);
+    SliderRow(S(41), &m_cfg->historyTrackGap, 0, 30, sv, 180);
+    ImGui::SeparatorText(S(117));
+    SliderRow(S(11), &m_cfg->historyGrowSpeed, 10, 900, sv, 180);
+    SliderRow(S(165), &m_cfg->historyFloatSpeed, 10, 900, sv, 180);
+    SliderRow(S(13), &m_cfg->historyBlockMax, 10, 100, sv, 180);
+    ImGui::SeparatorText(S(147));
+    SliderRow(S(118), &m_cfg->historyTrackAlpha, 0, 100, sv, 180);
+    SliderRow(S(43), &m_cfg->historyBlockAlpha, 0, 255, sv, 180);
+}
+
+// ========== 按键映射页 ==========
+void SettingsUI::DrawPageKeys() {
+    if (!m_cfg) return;
+    auto sv = [&]{ OnSave(); };
+    int nKeys = (int)m_cfg->keys.size();
+    ImGui::SeparatorText(S(95));
+    bool isNormal = !m_cfg->freeMode, isFree = m_cfg->freeMode;
+    if (ImGui::RadioButton(S(96), isNormal)) { m_cfg->freeMode = false; OnSave(); }
+    ImGui::SameLine(120);
+    if (ImGui::RadioButton(S(97), isFree)) {
+        m_cfg->freeMode = true; m_cfg->showHistory = false; m_cfg->chartSnap = false;
+        if (!m_cfg->keys.empty()) {
+            int ks = m_cfg->keySize, gap = m_cfg->keySpacing, pad = 10;
+            for (int i = 0; i < nKeys; ++i) {
+                m_cfg->keys[i].freeX = pad + i * (ks + gap);
+                m_cfg->keys[i].freeY = pad;
+            }
+            int off = pad + nKeys * (ks + gap);
+            m_cfg->freeTotalX = off; m_cfg->freeTotalY = pad;
+            m_cfg->freeKPSX = off + ks + gap; m_cfg->freeKPSY = pad;
+            m_cfg->freeBPMX = off + (ks + gap) * 2; m_cfg->freeBPMY = pad;
+        }
+        OnSave();
+    }
+    ImGui::Spacing(); ImGui::SeparatorText(S(142));
+    SliderRow(S(166), &m_cfg->freeAreaW, 200, 1200, sv, 180);
+    SliderRow(S(167), &m_cfg->freeAreaH, 100, 800, sv, 180);
+    SliderRow(S(109), &m_cfg->freeGridSize, 4, 64, sv, 180);
+    bool showB = m_cfg->freeShowBoundary;
+    if (ImGui::Checkbox(S(119), &showB)) {
+        m_cfg->freeShowBoundary = showB;
+        if (showB) { m_cfg->clickThrough = false; if (m_display) m_display->SetClickThrough(false); }
+        else { m_cfg->clickThrough = true; if (m_display) m_display->SetClickThrough(true); }
+        OnSave();
+    }
+    ImGui::SeparatorText(S(143));
+    SliderRow(S(9), &m_cfg->keySpacing, 0, 40, sv, 180);
+    SliderRow(S(53), &m_cfg->keyBorderW, 0, 8, sv, 180);
+    ImGui::Spacing(); ImGui::SeparatorText(S(15));
+    if (ImGui::BeginChild("KeyList", ImVec2(0, 120), true)) {
+        for (int i = 0; i < nKeys; ++i) {
+            char label[128];
+            snprintf(label, 128, "%s  (VK:%d)", ToUtf8(m_cfg->keys[i].label), m_cfg->keys[i].keyCode);
+            if (ImGui::Selectable(label, m_selectedKey == i)) m_selectedKey = i;
+        }
+    }
+    ImGui::EndChild();
+    if (ImGui::Button(S(16), ImVec2(120, 28))) { KeyboardHook::SetBlocked(true); MouseHook::SetBlocked(true); g_capturedVK = 0; s_captureState = 1; }
+    ImGui::SameLine();
+    if (ImGui::Button(S(17), ImVec2(120, 28))) { if (m_selectedKey >= 0 && m_selectedKey < nKeys && nKeys > 1) { m_cfg->keys.erase(m_cfg->keys.begin() + m_selectedKey); m_selectedKey = -1; OnSave(); } }
+    if (m_selectedKey >= 0 && m_selectedKey < nKeys) {
+        auto& kc = m_cfg->keys[m_selectedKey];
+        ImGui::Spacing(); ImGui::SeparatorText(S(18));
+        char nameBuf[64]; strncpy(nameBuf, ToUtf8(kc.label), 63); nameBuf[63] = 0;
+        if (ImGui::InputText(S(137), nameBuf, 64)) {
+            if (strlen(nameBuf) > 0) {
+                std::wstring wname; int len = MultiByteToWideChar(CP_UTF8, 0, nameBuf, -1, nullptr, 0);
+                wname.resize(len); MultiByteToWideChar(CP_UTF8, 0, nameBuf, -1, &wname[0], len);
+                while (!wname.empty() && wname.back() == L'\0') wname.pop_back();
+                kc.label = wname;
+            }
+        }
+        if (ImGui::IsItemDeactivatedAfterEdit()) OnSave();
+        ImGui::TextUnformatted("W:"); ImGui::SameLine(30);
+        ImGui::SetNextItemWidth(80);
+        if (ImGui::InputInt("##kW", &kc.customW, 1, 10)) { if (kc.customW < 0) kc.customW = 0; if (kc.customW > 500) kc.customW = 500; }
+        if (ImGui::IsItemDeactivatedAfterEdit()) OnSave();
+        ImGui::SameLine(140); ImGui::TextUnformatted("H:"); ImGui::SameLine();
+        ImGui::SetNextItemWidth(80);
+        if (ImGui::InputInt("##kH", &kc.customH, 1, 10)) { if (kc.customH < 0) kc.customH = 0; if (kc.customH > 500) kc.customH = 500; }
+        if (ImGui::IsItemDeactivatedAfterEdit()) OnSave();
+        ImVec4 cf = ToImCol(kc.colorFont), cn = ToImCol(kc.colorNormal), cp = ToImCol(kc.colorPress);
+        ImGui::TextUnformatted(S(19)); ImGui::SameLine(100);
+        if (ImGui::ColorEdit3("##fc", (float*)&cf, ImGuiColorEditFlags_NoInputs)) { kc.colorFont = ToRgba(cf); }
+        if (ImGui::IsItemDeactivatedAfterEdit()) OnSave();
+        ImGui::TextUnformatted(S(20)); ImGui::SameLine(100);
+        if (ImGui::ColorEdit3("##nc", (float*)&cn, ImGuiColorEditFlags_NoInputs)) { kc.colorNormal = ToRgba(cn); }
+        if (ImGui::IsItemDeactivatedAfterEdit()) OnSave();
+        ImGui::TextUnformatted(S(21)); ImGui::SameLine(100);
+        if (ImGui::ColorEdit3("##pc", (float*)&cp, ImGuiColorEditFlags_NoInputs)) { kc.colorPress = ToRgba(cp); }
+        if (ImGui::IsItemDeactivatedAfterEdit()) OnSave();
+        ImVec4 cb = ToImCol(kc.colorBorder);
+        ImGui::TextUnformatted(S(150)); ImGui::SameLine(100);
+        if (ImGui::ColorEdit3("##bc", (float*)&cb, ImGuiColorEditFlags_NoInputs)) { kc.colorBorder = ToRgba(cb); }
+        if (ImGui::IsItemDeactivatedAfterEdit()) OnSave();
+    }
+}
+
+// ========== 主题页 ==========
+void SettingsUI::DrawPageTheme() {
+    if (!m_cfg) return;
+    ImGui::SeparatorText(S(120));
+    int nThemes = (int)m_cfg->themePresets.size();
+    if (nThemes < 16) { m_cfg->InitDefaultThemes(); nThemes = 16; }
+    int cols = 4;
+    for (int i = 0; i < nThemes; ++i) {
+        if (i % cols != 0) ImGui::SameLine();
+        const char* name = ToUtf8(m_cfg->themePresets[i].name);
+        if (name[0] == 0) { char fb[32]; snprintf(fb, 32, "预设%d", i); name = fb; }
+        char id[32]; snprintf(id, 32, "##th%d", i);
+        ImVec4 c = ToImCol(m_cfg->themePresets[i].normal);
+        ImGui::PushStyleColor(ImGuiCol_Button, c); ImGui::PushStyleColor(ImGuiCol_ButtonHovered, c);
+        if (ImGui::Button(id, ImVec2(18, 18))) ApplyTheme(i);
+        ImGui::PopStyleColor(2);
+        ImGui::SameLine(); ImGui::TextUnformatted(name);
+    }
+    ImGui::Spacing();
+    if (ImGui::Button(S(82), ImVec2(140, 30))) { if (m_themeEditor) m_themeEditor->Show(true); }
+    ImGui::Spacing(); ImGui::SeparatorText(S(50));
+    // 与按键映射一致的布局：每个属性一行，名称 + 控件
+    for (int bi = 0; bi < 3; ++bi) {
+        const char* boxNames[] = {"Total", "KPS", "BPM"};
+        RgbaColor* boxBgs[]   = {&m_cfg->totalBoxBg, &m_cfg->kpsBoxBg, &m_cfg->bpmBoxBg};
+        RgbaColor* boxFcs[]   = {&m_cfg->totalBoxFc, &m_cfg->kpsBoxFc, &m_cfg->bpmBoxFc};
+        int* boxWs[]          = {&m_cfg->totalBoxW,   &m_cfg->kpsBoxW,   &m_cfg->bpmBoxW};
+        int* boxHs[]          = {&m_cfg->totalBoxH,   &m_cfg->kpsBoxH,   &m_cfg->bpmBoxH};
+        ImGui::TextUnformatted(boxNames[bi]);
+        ImGui::PushID(bi);
+        ImGui::Indent(20);
+        ImGui::TextUnformatted(S(121)); ImGui::SameLine(100);
+        { ImVec4 col = ToImCol(*boxBgs[bi]);
+        if (ImGui::ColorEdit3("##bg", (float*)&col, ImGuiColorEditFlags_NoInputs)) { *boxBgs[bi] = ToRgba(col); }
+        if (ImGui::IsItemDeactivatedAfterEdit()) OnSave(); }
+        ImGui::TextUnformatted(S(122)); ImGui::SameLine(100);
+        { ImVec4 col = ToImCol(*boxFcs[bi]);
+        if (ImGui::ColorEdit3("##fc", (float*)&col, ImGuiColorEditFlags_NoInputs)) { *boxFcs[bi] = ToRgba(col); }
+        if (ImGui::IsItemDeactivatedAfterEdit()) OnSave(); }
+        ImGui::TextUnformatted(S(124)); ImGui::SameLine(100);
+        ImGui::SetNextItemWidth(80);
+        if (ImGui::InputInt("##w", boxWs[bi], 1, 10)) { if (*boxWs[bi] < 0) *boxWs[bi] = 0; if (*boxWs[bi] > 500) *boxWs[bi] = 500; }
+        if (ImGui::IsItemDeactivatedAfterEdit()) OnSave();
+        ImGui::TextUnformatted(S(125)); ImGui::SameLine(100);
+        ImGui::SetNextItemWidth(80);
+        if (ImGui::InputInt("##h", boxHs[bi], 1, 10)) { if (*boxHs[bi] < 0) *boxHs[bi] = 0; if (*boxHs[bi] > 500) *boxHs[bi] = 500; }
+        if (ImGui::IsItemDeactivatedAfterEdit()) OnSave();
+        ImGui::Unindent(20);
+        ImGui::Spacing();
+        ImGui::PopID();
+    }
+}
+
+// ========== 图表页 ==========
+void SettingsUI::DrawPageChart() {
+    if (!m_cfg) return;
+    auto sv = [&]{ OnSave(); };
+    ImGui::SeparatorText("KPS");
+    if (ImGui::Checkbox(S(59), &m_cfg->showChart)) { if (m_chart) m_chart->Show(m_cfg->showChart); OnSave(); }
+    ImGui::SameLine(160);
+    if (ImGui::Checkbox(S(90), &m_cfg->chartShowGrid)) OnSave();
+    ImGui::Spacing(); ImGui::SeparatorText(S(126));
+    int chartTypes[] = {0, 1, 2};
+    const char* chartLabels[] = {S(91), S(92), S(93)};
+    for (int i = 0; i < 3; ++i) {
+        if (i > 0) ImGui::SameLine();
+        if (ImGui::RadioButton(chartLabels[i], &m_cfg->chartType, chartTypes[i])) OnSave();
+    }
+    ImGui::SameLine(280);
+    if (ImGui::Checkbox(S(94), &m_cfg->chartGradientFill)) OnSave();
+    ImGui::SeparatorText(S(144));
+    int tr = m_cfg->chartTimeRange / 1000;
+    SliderRow(S(60), &tr, 1, 30, [&]{
+        m_cfg->chartTimeRange = tr * 1000;
+        OnSave();
+    }, 170);
+    SliderRow(S(168), &m_cfg->chartW, 200, 800, sv, 170);
+    SliderRow(S(169), &m_cfg->chartH, 100, 600, sv, 170);
+    ImGui::SeparatorText(S(127));
+    SliderRow(S(170), &m_cfg->chartMarginL, 0, 60, sv, 170);
+    SliderRow(S(171), &m_cfg->chartMarginR, 0, 60, sv, 170);
+    SliderRow(S(172), &m_cfg->chartMarginT, 0, 60, sv, 170);
+    SliderRow(S(173), &m_cfg->chartMarginB, 0, 60, sv, 170);
+    ImGui::SeparatorText(S(128));
+    ImVec4 cbg = ToImCol(m_cfg->chartBgCol), cln = ToImCol(m_cfg->chartLineCol);
+    ImGui::TextUnformatted(S(121)); ImGui::SameLine(100);
+    if (ImGui::ColorEdit3("##cbg", (float*)&cbg, ImGuiColorEditFlags_NoInputs)) { m_cfg->chartBgCol = ToRgba(cbg); }
+    if (ImGui::IsItemDeactivatedAfterEdit()) OnSave();
+    ImGui::TextUnformatted(S(123)); ImGui::SameLine(100);
+    if (ImGui::ColorEdit3("##cln", (float*)&cln, ImGuiColorEditFlags_NoInputs)) { m_cfg->chartLineCol = ToRgba(cln); }
+    if (ImGui::IsItemDeactivatedAfterEdit()) OnSave();
+    ImGui::SeparatorText(S(129));
+    SliderRow(S(174), &m_cfg->chartRadius, 0, 20, sv, 170);
+    ImGui::SeparatorText(S(130));
+    ImGui::BeginDisabled(m_cfg->freeMode);
+    if (ImGui::Checkbox(S(131), &m_cfg->chartSnap)) OnSave();
+    ImGui::EndDisabled();
+    SliderRow(S(175), &m_cfg->chartSnapOffsetX, -200, 200, sv, 170);
+    SliderRow(S(176), &m_cfg->chartSnapOffsetY, -200, 200, sv, 170);
+}
+
+// ========== 录制页 ==========
+void SettingsUI::DrawPageRecording() {
+    if (!m_cfg) return;
+    ImGui::SeparatorText(S(98));
+
+    // 录制状态指示
+    if (m_recording) {
+        // 闪烁效果：每500ms切换颜色
+        bool blink = (GetTickCount64() / 500) % 2 == 0;
+        if (blink) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.2f, 0.9f, 0.3f, 1.0f));
+        else       ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 1.0f, 0.8f, 1.0f));
+        ImGui::TextUnformatted(S(161));
+        ImGui::PopStyleColor();
+
+        // 计时
+        uint64_t now = GetTickCount64();
+        uint64_t elapsedMs = now - m_recStartTime;
+        int sec = (int)(elapsedMs / 1000) % 60;
+        int min = (int)(elapsedMs / 60000) % 60;
+        int hr  = (int)(elapsedMs / 3600000);
+        char timeBuf[32];
+        if (hr > 0) snprintf(timeBuf, 32, "⏱ %d:%02d:%02d", hr, min, sec);
+        else        snprintf(timeBuf, 32, "⏱ %d:%02d", min, sec);
+        ImGui::SameLine(160);
+        ImGui::TextUnformatted(timeBuf);
+    } else {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+        ImGui::TextUnformatted(S(160));
+        ImGui::PopStyleColor();
+    }
+
+    ImGui::Spacing(); ImGui::SeparatorText(S(99));
+    ImGui::TextWrapped(S(148));
+    std::string btnLabel = S(149);
+    if (m_cfg->recordingHotkeyVK != 0) {
+        char kb[64]; GetKeyNameText(m_cfg->recordingHotkeyVK, kb, 64);
+        btnLabel = kb;
+    }
+    if (ImGui::Button(btnLabel.c_str(), ImVec2(220, 30))) {
+        KeyboardHook::SetBlocked(true);
+        MouseHook::SetBlocked(true);
+        g_capturedVK = 0;
+        s_captureState = 2;
+    }
+
+    // 输出目录
+    ImGui::Spacing(); ImGui::SeparatorText(S(162));
+    std::wstring& outDir = m_cfg->recordingDir;
+    // 如果为空，显示默认路径（exe目录 + record）
+    wchar_t exePath[MAX_PATH];
+    GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+    wchar_t* lastSlash = wcsrchr(exePath, L'\\');
+    if (lastSlash) *(lastSlash + 1) = L'\0';
+    std::wstring defaultDir = std::wstring(exePath) + L"record";
+
+    const wchar_t* displayDir = outDir.empty() ? defaultDir.c_str() : outDir.c_str();
+    char dirUtf8[512];
+    WideCharToMultiByte(CP_UTF8, 0, displayDir, -1, dirUtf8, 512, nullptr, nullptr);
+    ImGui::TextWrapped("%s", dirUtf8);
+
+    ImGui::SameLine();
+    if (ImGui::Button(S(163), ImVec2(100, 0))) {
+        // 打开文件夹选择对话框
+        wchar_t selPath[MAX_PATH] = {};
+        BROWSEINFOW bi = {};
+        bi.hwndOwner = m_hwnd;
+        bi.lpszTitle = L"选择录制文件输出目录";
+        bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+        bi.lpfn = nullptr;
+        LPITEMIDLIST pidl = SHBrowseForFolderW(&bi);
+        if (pidl) {
+            if (SHGetPathFromIDListW(pidl, selPath)) {
+                outDir = selPath;
+                // 确保末尾有反斜杠
+                if (!outDir.empty() && outDir.back() != L'\\')
+                    outDir += L'\\';
+                OnSave();
+            }
+            CoTaskMemFree(pidl);
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(S(177), ImVec2(80, 0))) {
+        outDir.clear();
         OnSave();
     }
 }
 
-// ========== Chart 颜色选取 ==========
-void SettingsUI::OnPickChartColor(int cid) {
-    if (!m_cfg) return;
-    RgbaColor* p = nullptr;
-    HWND sw = nullptr, lbl = nullptr;
-    if (cid == CID_SW_CHARTBG)  { p = &m_cfg->chartBgCol;   sw = m_swChartBg;   lbl = m_lblChartBg; }
-    if (cid == CID_SW_CHARTLINE){ p = &m_cfg->chartLineCol; sw = m_swChartLine; lbl = m_lblChartLine; }
-    if (!p) return;
-    static COLORREF cust[16]={};
-    CHOOSECOLORW cc={}; cc.lStructSize=sizeof(cc); cc.hwndOwner=m_hwnd;
-    cc.rgbResult=RGB(p->r,p->g,p->b); cc.lpCustColors=cust; cc.Flags=CC_RGBINIT|CC_FULLOPEN;
-    if (ChooseColorW(&cc)) {
-        p->r=GetRValue(cc.rgbResult); p->g=GetGValue(cc.rgbResult); p->b=GetBValue(cc.rgbResult);
-        InvalidateRect(sw,nullptr,TRUE);
-        wchar_t cb[64]; swprintf(cb,64,L"RGB(%d,%d,%d)",p->r,p->g,p->b); SetWindowTextW(lbl,cb);
-        OnSave();
+// ========== 快捷键设置页 ==========
+static int* GetHKPtr(AppConfig* cfg, int slot) {
+    switch (slot) {
+        case 0: return &cfg->hotkeySettingsVK;
+        case 1: return &cfg->hotkeyThemeEditorVK;
+        case 2: return &cfg->hotkeyToggleDisplayVK;
+        case 3: return &cfg->hotkeyNextThemeVK;
+        case 4: return &cfg->hotkeyPrevThemeVK;
+        case 5: return &cfg->hotkeyToggleTrackVK;
+        case 6: return &cfg->hotkeyToggleChartVK;
+        default: return nullptr;
     }
 }
 
-// ========== 颜色选取 ==========
-void SettingsUI::OnPickColor(int target) {
+void SettingsUI::DrawPageHotkeys() {
     if (!m_cfg) return;
-    int sel = (int)SendMessageW(m_listKeys, LB_GETCURSEL, 0, 0);
-    if (sel < 0 || sel >= (int)m_cfg->keys.size()) return;
+    ImGui::SeparatorText(S(151));
+    ImGui::TextWrapped(S(185));
+    ImGui::Spacing();
 
-    auto& kc = m_cfg->keys[sel];
-    RgbaColor* pColor = nullptr;
-    switch (target) {
-    case 0: pColor = &kc.colorFont;   break;
-    case 1: pColor = &kc.colorNormal; break;
-    case 2: pColor = &kc.colorPress;  break;
+    for (int i = 0; i < 7; ++i) {
+        int* vkPtr = GetHKPtr(m_cfg, i);
+        if (!vkPtr) continue;
+
+        char keyBuf[64] = "未设置";
+        if (*vkPtr != 0) GetKeyNameText(*vkPtr, keyBuf, 64);
+        char label[128];
+        snprintf(label, 128, "Ctrl+Shift+%s", keyBuf);
+
+        const char* hkName = "";
+        switch (i) { case 0: hkName = S(178); break; case 1: hkName = S(179); break;
+                     case 2: hkName = S(180); break; case 3: hkName = S(181); break;
+                     case 4: hkName = S(182); break; case 5: hkName = S(183); break;
+                     case 6: hkName = S(184); break; }
+        ImGui::Text("%s:", hkName);
+        ImGui::SameLine(130);
+
+        if (s_hkCapturing == i) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.4f, 0.6f, 1.0f));
+            ImGui::Button(S(186), ImVec2(200, 0));
+            ImGui::PopStyleColor();
+
+            int capturedVK = g_capturedVK;
+            if (capturedVK > 0) {
+                g_capturedVK = 0;
+                if (capturedVK == VK_ESCAPE) {
+                    s_hkCapturing = -1;
+                } else {
+                    *vkPtr = capturedVK;
+                    OnSave();
+                    if (GetActiveWindow()) PostMessageW(GetActiveWindow(), WM_APP + 5, 0, 0);
+                    s_hkCapturing = -1;
+                }
+            }
+        } else {
+            if (ImGui::Button(label, ImVec2(200, 0))) {
+                g_capturedVK = 0;
+                s_hkCapturing = i;
+            }
+        }
+        ImGui::Spacing();
     }
-    if (!pColor) return;
-
-    static COLORREF custom[16] = {};
-    CHOOSECOLORW cc = {};
-    cc.lStructSize  = sizeof(cc);
-    cc.hwndOwner    = m_hwnd;
-    cc.rgbResult    = RGB(pColor->r, pColor->g, pColor->b);
-    cc.lpCustColors = custom;
-    cc.Flags        = CC_RGBINIT | CC_FULLOPEN;
-
-    if (ChooseColorW(&cc)) {
-        pColor->r = GetRValue(cc.rgbResult);
-        pColor->g = GetGValue(cc.rgbResult);
-        pColor->b = GetBValue(cc.rgbResult);
-        UpdateColorSwatches(sel);
-    }
-}
-
-// ========== 重置所有 Total ==========
-void SettingsUI::OnResetTotals() {
-    if (!m_cfg) return;
-    for (auto& kc : m_cfg->keys) kc.totalPresses = 0;
-    if (m_ksm) m_ksm->ResetTotals();
-    OnSave();
-    MessageBoxW(m_hwnd, LANG(35), LANG(36), MB_ICONINFORMATION);
-}
-
-// ========== 重置默认 ==========
-void SettingsUI::OnResetDefaults() {
-    if (!m_cfg) return;
-    if (MessageBoxW(m_hwnd, LANG(56), LANG(57), MB_YESNO|MB_ICONWARNING) != IDYES) return;
-    bool chartWasVisible = m_cfg->showChart;
-    *m_cfg = AppConfig{};
-    m_cfg->keys.push_back({32, L"Space", {235,235,245,255}, {48,48,48,200}, {255,95,95,255}});
-    m_cfg->keys.push_back({65, L"A",     {235,235,245,255}, {48,48,48,200}, {95,255,95,255}});
-    m_cfg->keys.push_back({83, L"S",     {235,235,245,255}, {48,48,48,200}, {95,130,255,255}});
-    m_cfg->keys.push_back({68, L"D",     {235,235,245,255}, {48,48,48,200}, {255,210,60,255}});
-    // 同步关闭图表窗口，保持状态一致
-    if (m_chart && chartWasVisible) m_chart->Show(false);
-    m_cfg->Save(m_configPath.empty()?L"KeyStateSetting.json":m_configPath.c_str());
-    RebuildWindow();
 }
 
 // ========== 保存 ==========
 void SettingsUI::OnSave() {
     if (!m_cfg) return;
-
-    // 同步编辑框 → 滑条
-    wchar_t buf[16];
-    // 同步按键名称
-    if (m_editKeyName && m_selectedKey >= 0 && m_selectedKey < (int)m_cfg->keys.size()) {
-        wchar_t nb[64];
-        GetWindowTextW(m_editKeyName, nb, 64);
-        if (wcslen(nb) > 0) m_cfg->keys[m_selectedKey].label = nb;
-    }
-
-    GetWindowTextW(m_editSpacing, buf, 16);
-    int sp = _wtoi(buf);
-    if (sp >= 0 && sp <= 40) {
-        m_cfg->keySpacing = sp;
-        SendMessageW(m_trackSpacing, TBM_SETPOS, TRUE, sp);
-    }
-
-    GetWindowTextW(m_editHistoryH, buf, 16);
-    int hh = _wtoi(buf);
-    if (hh >= 20 && hh <= 600) { m_cfg->historyTrackH = hh; SendMessageW(m_trackHistoryH, TBM_SETPOS, TRUE, hh); }
-
-    GetWindowTextW(m_editGrowSpd, buf, 16);
-    int gs = _wtoi(buf);
-    if (gs >= 10 && gs <= 300) { m_cfg->historyGrowSpeed = gs; SendMessageW(m_trackGrowSpd, TBM_SETPOS, TRUE, gs); }
-
-    GetWindowTextW(m_editFloatSpd, buf, 16);
-    int fs = _wtoi(buf);
-    if (fs >= 10 && fs <= 300) { m_cfg->historyFloatSpeed = fs; SendMessageW(m_trackFloatSpd, TBM_SETPOS, TRUE, fs); }
-
-    GetWindowTextW(m_editBlockMax, buf, 16);
-    int bm = _wtoi(buf);
-    if (bm >= 10 && bm <= 100) { m_cfg->historyBlockMax = bm; SendMessageW(m_trackBlockMax, TBM_SETPOS, TRUE, bm); }
-
-    GetWindowTextW(m_editBorder, buf, 16);
-    int bw = _wtoi(buf);
-    if (bw >= 0 && bw <= 8) { m_cfg->keyBorderW = bw; SendMessageW(m_trackBorder, TBM_SETPOS, TRUE, bw); }
-
-    GetWindowTextW(m_editOpacity, buf, 16);
-    int op = _wtoi(buf);
-    if (op >= 10 && op <= 100) { m_cfg->overlayOpacity = op / 100.0f; SendMessageW(m_trackOpacity, TBM_SETPOS, TRUE, op); }
-
-    GetWindowTextW(m_editBpmMerge, buf, 16);
-    int bp = _wtoi(buf);
-    if (bp >= 0 && bp <= 100) { m_cfg->bpmMergeMs = bp; SendMessageW(m_trackBpmMerge, TBM_SETPOS, TRUE, bp); }
-
-    GetWindowTextW(m_editTrackAlpha, buf, 16);
-    int ta = _wtoi(buf);
-    if (ta >= 0 && ta <= 100) { m_cfg->historyTrackAlpha = ta; SendMessageW(m_trackTrackAlpha, TBM_SETPOS, TRUE, ta); }
-
-    GetWindowTextW(m_editBlockAlpha, buf, 16);
-    int ba = _wtoi(buf);
-    if (ba >= 0 && ba <= 255) { m_cfg->historyBlockAlpha = ba; SendMessageW(m_trackBlockAlpha, TBM_SETPOS, TRUE, ba); }
-
-    GetWindowTextW(m_editChartTime, buf, 16);
-    int ct = _wtoi(buf);
-    if (ct >= 1 && ct <= 30) { m_cfg->chartTimeRange = ct * 1000; SendMessageW(m_trackChartTime, TBM_SETPOS, TRUE, ct); }
-
-    GetWindowTextW(m_editChartRadius, buf, 16);
-    int cr = _wtoi(buf);
-    if (cr >= 0 && cr <= 20) { m_cfg->chartRadius = cr; SendMessageW(m_trackChartRadius, TBM_SETPOS, TRUE, cr); }
-
-    GetWindowTextW(m_editChartW, buf, 16);
-    int cw = _wtoi(buf);
-    if (cw >= 200 && cw <= 800) { m_cfg->chartW = cw; SendMessageW(m_trackChartW, TBM_SETPOS, TRUE, cw); }
-
-    GetWindowTextW(m_editChartH, buf, 16);
-    int ch = _wtoi(buf);
-    if (ch >= 100 && ch <= 600) { m_cfg->chartH = ch; SendMessageW(m_trackChartH, TBM_SETPOS, TRUE, ch); }
-
-    auto syncMargEdit = [&](HWND ed, HWND tr, int& v, int lo, int hi) {
-        GetWindowTextW(ed, buf, 16); int val = _wtoi(buf);
-        if (val >= lo && val <= hi) { v = val; SendMessageW(tr, TBM_SETPOS, TRUE, val); }
-    };
-    syncMargEdit(m_editChartML, m_trackChartML, m_cfg->chartMarginL, 0, 60);
-    syncMargEdit(m_editChartMR, m_trackChartMR, m_cfg->chartMarginR, 0, 60);
-    syncMargEdit(m_editChartMT, m_trackChartMT, m_cfg->chartMarginT, 0, 60);
-    syncMargEdit(m_editChartMB, m_trackChartMB, m_cfg->chartMarginB, 0, 60);
-
-    GetWindowTextW(m_editChartSnapX, buf, 16);
-    int sx = _wtoi(buf);
-    if (sx >= -200 && sx <= 200) { m_cfg->chartSnapOffsetX = sx; SendMessageW(m_trackChartSnapX, TBM_SETPOS, TRUE, sx); }
-    GetWindowTextW(m_editChartSnapY, buf, 16);
-    int sy = _wtoi(buf);
-    if (sy >= -200 && sy <= 200) { m_cfg->chartSnapOffsetY = sy; SendMessageW(m_trackChartSnapY, TBM_SETPOS, TRUE, sy); }
-
-    if (m_editFreeAreaW) {
-        GetWindowTextW(m_editFreeAreaW, buf, 16);
-        int fw = _wtoi(buf);
-        if (fw >= 200 && fw <= 1200) { m_cfg->freeAreaW = fw; if (m_trackFreeAreaW) SendMessageW(m_trackFreeAreaW, TBM_SETPOS, TRUE, fw); }
-    }
-    if (m_editFreeAreaH) {
-        GetWindowTextW(m_editFreeAreaH, buf, 16);
-        int fh = _wtoi(buf);
-        if (fh >= 100 && fh <= 800) { m_cfg->freeAreaH = fh; if (m_trackFreeAreaH) SendMessageW(m_trackFreeAreaH, TBM_SETPOS, TRUE, fh); }
-    }
-    if (m_editGridSize) {
-        GetWindowTextW(m_editGridSize, buf, 16);
-        int gs = _wtoi(buf);
-        if (gs >= 4 && gs <= 64) { m_cfg->freeGridSize = gs; if (m_trackGridSize) SendMessageW(m_trackGridSize, TBM_SETPOS, TRUE, gs); }
-    }
-    // 数据框尺寸同步
-    auto syncBoxSize = [&](HWND ed, int& val) {
-        if (ed) { GetWindowTextW(ed, buf, 16); int v = _wtoi(buf); if (v >= 0 && v <= 500) val = v; }
-    };
-    syncBoxSize(m_editTotalBoxW, m_cfg->totalBoxW);
-    syncBoxSize(m_editTotalBoxH, m_cfg->totalBoxH);
-    syncBoxSize(m_editKpsBoxW,   m_cfg->kpsBoxW);
-    syncBoxSize(m_editKpsBoxH,   m_cfg->kpsBoxH);
-    syncBoxSize(m_editBpmBoxW,   m_cfg->bpmBoxW);
-    syncBoxSize(m_editBpmBoxH,   m_cfg->bpmBoxH);
-
-    const wchar_t* savePath = m_configPath.empty() ? L"KeyStateSetting.json" : m_configPath.c_str();
-    m_cfg->Save(savePath);
-
-    if (m_display && m_cfg) {
-        m_display->SetClickThrough(m_cfg->clickThrough);
-    }
+    if (m_display) m_display->SetClickThrough(m_cfg->clickThrough);
+    const wchar_t* sp = m_configPath.empty() ? L"KeyStateSetting.json" : m_configPath.c_str();
+    m_cfg->Save(sp);
+    if (m_ksm) for (auto& kc : m_cfg->keys) kc.totalPresses = m_ksm->GetTotal(kc.keyCode);
 }
 
-// ========== 循环切换主题预设 ==========
+void SettingsUI::ApplyTheme(int tid) {
+    if (!m_cfg || m_cfg->keys.empty() || tid < 0 || tid > 15) return;
+    if ((int)m_cfg->themePresets.size() <= tid) m_cfg->InitDefaultThemes();
+    m_cfg->theme = tid;
+    auto& tp = m_cfg->themePresets[tid];
+    for (auto& kc : m_cfg->keys) {
+        if (tp.font.a > 0) kc.colorFont = tp.font;
+        if (tp.normal.a > 0) kc.colorNormal = tp.normal;
+        if (tp.press.a > 0) kc.colorPress = tp.press;
+    }
+    if (tp.chartBg.a > 0) m_cfg->chartBgCol = tp.chartBg;
+    if (tp.chartLine.a > 0) m_cfg->chartLineCol = tp.chartLine;
+    OnSave();
+}
+
 void SettingsUI::CycleTheme(int direction) {
     if (!m_cfg || m_cfg->keys.empty()) return;
-    int maxTheme = 15;
-    int newTheme = m_cfg->theme + direction;
+    int maxTheme = 15, newTheme = m_cfg->theme + direction;
     if (newTheme < 0) newTheme = maxTheme;
     if (newTheme > maxTheme) newTheme = 0;
     ApplyTheme(newTheme);
 }
 
-// ========== 应用 Theme 预设 ==========
-void SettingsUI::ApplyTheme(int tid) {
-    if (!m_cfg || m_cfg->keys.empty()) return;
-    if (tid < 0 || tid > 15) return;
-    if ((int)m_cfg->themePresets.size() <= tid) m_cfg->InitDefaultThemes();
-    m_cfg->theme = tid;
-    auto& tp = m_cfg->themePresets[tid];
-    for (auto& kc : m_cfg->keys) {
-        if (tp.font.a > 0)   kc.colorFont   = tp.font;
-        if (tp.normal.a > 0) kc.colorNormal = tp.normal;
-        if (tp.press.a > 0)  kc.colorPress  = tp.press;
-    }
-    if (tp.chartBg.a > 0)   m_cfg->chartBgCol   = tp.chartBg;
-    if (tp.chartLine.a > 0) m_cfg->chartLineCol = tp.chartLine;
-    OnSave();
-    UpdateColorSwatches(m_selectedKey);
-    // 刷新 chart 颜色显示
-    if (m_swChartBg && m_swChartLine) {
-        {
-            delete reinterpret_cast<SwatchData*>(GetWindowLongPtrW(m_swChartBg, GWLP_USERDATA));
-            auto sd = new SwatchData{&m_cfg->chartBgCol};
-            SetWindowLongPtrW(m_swChartBg, GWLP_USERDATA, (LONG_PTR)sd);
-            InvalidateRect(m_swChartBg, nullptr, TRUE);
-        }
-        {
-            delete reinterpret_cast<SwatchData*>(GetWindowLongPtrW(m_swChartLine, GWLP_USERDATA));
-            auto sd = new SwatchData{&m_cfg->chartLineCol};
-            SetWindowLongPtrW(m_swChartLine, GWLP_USERDATA, (LONG_PTR)sd);
-            InvalidateRect(m_swChartLine, nullptr, TRUE);
-        }
-        wchar_t cb[64];
-        swprintf(cb,64,L"RGB(%d,%d,%d)",m_cfg->chartBgCol.r,m_cfg->chartBgCol.g,m_cfg->chartBgCol.b);
-        SetWindowTextW(m_lblChartBg, cb);
-        swprintf(cb,64,L"RGB(%d,%d,%d)",m_cfg->chartLineCol.r,m_cfg->chartLineCol.g,m_cfg->chartLineCol.b);
-        SetWindowTextW(m_lblChartLine, cb);
-    }
-}
-
-void SettingsUI::RebuildWindow() {
-    if (!m_hwnd) return;
-    DestroyWindow(m_hwnd); m_hwnd = nullptr;
-    m_scrollY = 0;
-    Create(m_hInst, m_cfg, m_display, m_chart, m_themeEditor, m_ksm);
-    if (m_hwnd) RefreshControls();
-}
-
-void SettingsUI::RefreshControls() {
-    if (!m_cfg) return;
-    SendMessageW(m_chkTotal,   BM_SETCHECK, m_cfg->showTotal    ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_chkKPS,     BM_SETCHECK, m_cfg->showKPS      ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_chkSummary, BM_SETCHECK, m_cfg->showSummary  ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_chkHistory, BM_SETCHECK, m_cfg->showHistory  ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_chkTrackLines, BM_SETCHECK, m_cfg->historyShowLines ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_chkBPM,     BM_SETCHECK, m_cfg->showBPM      ? BST_CHECKED : BST_UNCHECKED, 0);
-    int nd = m_cfg->bpmNoteDiv;
-    SendMessageW(m_radioNote8,  BM_SETCHECK, (nd == 8)  ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_radioNote16, BM_SETCHECK, (nd != 8 && nd != 32 && nd != 64) ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_radioNote32, BM_SETCHECK, (nd == 32) ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_radioNote64, BM_SETCHECK, (nd == 64) ? BST_CHECKED : BST_UNCHECKED, 0);
-    int l = m_cfg->lang;
-    SendMessageW(m_radioLangCN, BM_SETCHECK, (l == 0) ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_radioLangEN, BM_SETCHECK, (l == 1) ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_radioLangJP, BM_SETCHECK, (l == 2) ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_chkThrough, BM_SETCHECK, m_cfg->clickThrough ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_chkTopMost, BM_SETCHECK, m_cfg->alwaysOnTop ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_trackSpacing, TBM_SETPOS, TRUE, m_cfg->keySpacing);
-    SendMessageW(m_trackHistoryH, TBM_SETPOS, TRUE, m_cfg->historyTrackH);
-    SendMessageW(m_trackGrowSpd,  TBM_SETPOS, TRUE, m_cfg->historyGrowSpeed);
-    SendMessageW(m_trackFloatSpd, TBM_SETPOS, TRUE, m_cfg->historyFloatSpeed);
-    SendMessageW(m_trackBlockMax, TBM_SETPOS, TRUE, m_cfg->historyBlockMax);
-    SendMessageW(m_trackTrackGap,TBM_SETPOS, TRUE, m_cfg->historyTrackGap);
-    SendMessageW(m_trackBpmMerge,TBM_SETPOS, TRUE, m_cfg->bpmMergeMs);
-    SendMessageW(m_trackTrackAlpha,TBM_SETPOS,TRUE,m_cfg->historyTrackAlpha);
-    SendMessageW(m_trackBlockAlpha,TBM_SETPOS,TRUE,m_cfg->historyBlockAlpha);
-    SendMessageW(m_trackBorder,   TBM_SETPOS, TRUE, m_cfg->keyBorderW);
-    SendMessageW(m_trackOpacity,  TBM_SETPOS, TRUE, (int)(m_cfg->overlayOpacity * 100));
-    int th = m_cfg->theme;
-    for (int i = 0; i < 16; ++i) {
-        SendMessageW(((HWND*)&m_radioTheme0)[i], BM_SETCHECK, (th == i) ? BST_CHECKED : BST_UNCHECKED, 0);
-        int lid = (i == 0) ? 46 : ((i <= 3) ? (46 + i) : (70 + i - 4));
-        const wchar_t* name = (i < (int)m_cfg->themePresets.size() && !m_cfg->themePresets[i].name.empty())
-            ? m_cfg->themePresets[i].name.c_str() : LANG(lid);
-        SetWindowTextW(((HWND*)&m_radioTheme0)[i], name);
-    }
-    // 更新字体名称显示
-    if (m_btnFont) {
-        HWND hLabel = GetWindow(m_btnFont, GW_HWNDNEXT);
-        if (hLabel) { wchar_t fb[64]; swprintf(fb, 64, L"%ls", m_cfg->keyFontName.c_str()); SetWindowTextW(hLabel, fb); }
-    }
-    SyncSpacingEdit();
-    SyncHistoryHEdit();
-    SyncGrowSpdEdit();
-    SyncFloatSpdEdit();
-    SyncBlockMaxEdit();
-
-    int f = m_cfg->fps;
-    SendMessageW(m_radioFps25, BM_SETCHECK, (f == 25)  ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_radioFps45, BM_SETCHECK, (f == 45)  ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_radioFps60, BM_SETCHECK, (f == 60)  ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_radioFps90, BM_SETCHECK, (f == 90)  ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_radioFps120,BM_SETCHECK, (f == 120) ? BST_CHECKED : BST_UNCHECKED, 0);
-
-    SyncBorderEdit();
-    SyncOpacityEdit();
-
-    // Chart controls
-    SendMessageW(m_chkChart, BM_SETCHECK, m_cfg->showChart ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_chkChartGrid, BM_SETCHECK, m_cfg->chartShowGrid ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_trackChartTime, TBM_SETPOS, TRUE, m_cfg->chartTimeRange / 1000);
-    wchar_t ctb[16]; swprintf(ctb,16,L"%d",m_cfg->chartTimeRange/1000); SetWindowTextW(m_editChartTime,ctb);
-    SendMessageW(m_trackChartRadius, TBM_SETPOS, TRUE, m_cfg->chartRadius);
-    wchar_t crb[16]; swprintf(crb,16,L"%d",m_cfg->chartRadius); SetWindowTextW(m_editChartRadius,crb);
-    SendMessageW(m_trackChartW, TBM_SETPOS, TRUE, m_cfg->chartW);
-    { wchar_t wb[16]; swprintf(wb,16,L"%d",m_cfg->chartW); SetWindowTextW(m_editChartW,wb); }
-    SendMessageW(m_trackChartH, TBM_SETPOS, TRUE, m_cfg->chartH);
-    { wchar_t hb[16]; swprintf(hb,16,L"%d",m_cfg->chartH); SetWindowTextW(m_editChartH,hb); }
-    auto synMarg = [](HWND tr, HWND ed, int v) {
-        SendMessageW(tr, TBM_SETPOS, TRUE, v);
-        wchar_t b[16]; swprintf(b,16,L"%d",v); SetWindowTextW(ed,b);
-    };
-    synMarg(m_trackChartML, m_editChartML, m_cfg->chartMarginL);
-    synMarg(m_trackChartMR, m_editChartMR, m_cfg->chartMarginR);
-    synMarg(m_trackChartMT, m_editChartMT, m_cfg->chartMarginT);
-    synMarg(m_trackChartMB, m_editChartMB, m_cfg->chartMarginB);
-
-    // Snap controls
-    SendMessageW(m_chkChartSnap, BM_SETCHECK, m_cfg->chartSnap ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_trackChartSnapX, TBM_SETPOS, TRUE, m_cfg->chartSnapOffsetX);
-    { wchar_t xb[16]; swprintf(xb,16,L"%d",m_cfg->chartSnapOffsetX); SetWindowTextW(m_editChartSnapX,xb); }
-    SendMessageW(m_trackChartSnapY, TBM_SETPOS, TRUE, m_cfg->chartSnapOffsetY);
-    { wchar_t yb[16]; swprintf(yb,16,L"%d",m_cfg->chartSnapOffsetY); SetWindowTextW(m_editChartSnapY,yb); }
-
-    // Chart type
-    int ct = m_cfg->chartType;
-    SendMessageW(m_radioChartLine, BM_SETCHECK, (ct == 0) ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_radioChartScatter, BM_SETCHECK, (ct == 1) ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_radioChartBar, BM_SETCHECK, (ct == 2) ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_chkChartGradient, BM_SETCHECK, m_cfg->chartGradientFill ? BST_CHECKED : BST_UNCHECKED, 0);
-
-    // Layout mode
-    SendMessageW(m_radioNormalMode, BM_SETCHECK, m_cfg->freeMode ? BST_UNCHECKED : BST_CHECKED, 0);
-    SendMessageW(m_radioFreeMode, BM_SETCHECK, m_cfg->freeMode ? BST_CHECKED : BST_UNCHECKED, 0);
-    // 自由模式区域尺寸
-    SendMessageW(m_trackFreeAreaW, TBM_SETPOS, TRUE, m_cfg->freeAreaW);
-    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeAreaW); SetWindowTextW(m_editFreeAreaW,tb); }
-    SendMessageW(m_trackFreeAreaH, TBM_SETPOS, TRUE, m_cfg->freeAreaH);
-    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeAreaH); SetWindowTextW(m_editFreeAreaH,tb); }
-    SendMessageW(m_chkFreeBoundary, BM_SETCHECK, m_cfg->freeShowBoundary ? BST_CHECKED : BST_UNCHECKED, 0);
-    // 自由模式下禁用轨道和图表吸附
-    if (m_chkHistory) EnableWindow(m_chkHistory, m_cfg->freeMode ? FALSE : TRUE);
-    if (m_chkChartSnap) EnableWindow(m_chkChartSnap, m_cfg->freeMode ? FALSE : TRUE);
-    // V1.5: 网格吸附（仅在显示边界时才可启用）
-    SendMessageW(m_chkGridSnap, BM_SETCHECK, m_cfg->freeGridSnap ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(m_trackGridSize, TBM_SETPOS, TRUE, m_cfg->freeGridSize);
-    { wchar_t tb[16]; swprintf(tb,16,L"%d",m_cfg->freeGridSize); SetWindowTextW(m_editGridSize,tb); }
-    bool boundaryVis = m_cfg->freeShowBoundary;
-    if (m_chkGridSnap) EnableWindow(m_chkGridSnap, boundaryVis ? TRUE : FALSE);
-    if (m_trackGridSize) EnableWindow(m_trackGridSize, boundaryVis ? TRUE : FALSE);
-    if (m_editGridSize) EnableWindow(m_editGridSize, boundaryVis ? TRUE : FALSE);
-
-    // Recording hotkey button
-    if (m_cfg->recordingHotkeyVK != 0) {
-        wchar_t kb[64];
-        UINT sc = MapVirtualKeyW((UINT)m_cfg->recordingHotkeyVK, MAPVK_VK_TO_VSC);
-        LONG lp = (sc << 16);
-        GetKeyNameTextW(lp, kb, 64);
-        SetWindowTextW(m_btnRecordHotkey, kb);
-    } else {
-        SetWindowTextW(m_btnRecordHotkey, LANG(100));
-    }
-
-    RefreshKeyList();
-}
-
-// ========== 录制状态更新 ==========
 void SettingsUI::UpdateRecordStatus(bool recording, uint64_t startTime) {
-    if (!m_lblRecordStatus) return;
-    if (recording) {
-        uint64_t elapsed = GetTickCount64() - startTime;
-        int totalSec = (int)(elapsed / 1000);
-        int min = totalSec / 60;
-        int sec = totalSec % 60;
-        wchar_t buf[128];
-        swprintf(buf, 128, L"%ls  %02d:%02d", LANG(102), min, sec);
-        SetWindowTextW(m_lblRecordStatus, buf);
-    } else {
-        SetWindowTextW(m_lblRecordStatus, LANG(105));
-    }
-}
-
-void SettingsUI::OnDestroy() {
-    auto cleanSwatch = [](HWND sw) {
-        if (sw) delete reinterpret_cast<SwatchData*>(GetWindowLongPtrW(sw, GWLP_USERDATA));
-    };
-    cleanSwatch(m_swFont);
-    cleanSwatch(m_swNormal);
-    cleanSwatch(m_swPress);
-    cleanSwatch(m_swChartBg);
-    cleanSwatch(m_swChartLine);
-    m_hwnd = nullptr;
+    m_recording = recording; m_recStartTime = startTime;
 }

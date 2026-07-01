@@ -178,7 +178,7 @@ static const wchar_t* g_strings[][3] = {
     // 83
     {L"显示",             L"Display",            L"表示"},
     // 84
-    {L"布局",             L"Layout",             L"レイアウト"},
+    {L"轨道",             L"Track",             L"トラック"},
     // 85
     {L"主题",             L"Theme",              L"テーマ"},
     // 86
@@ -237,6 +237,158 @@ static const wchar_t* g_strings[][3] = {
     {L"宽 (0=默认)", L"W (0=default)", L"幅 (0=標準)"},
     // 113
     {L"高 (0=默认)", L"H (0=default)", L"高さ (0=標準)"},
+    // 114
+    {L"上升式", L"Rising", L"上昇式"},
+    // 115
+    {L"下落式", L"Falling", L"落下式"},
+    // 116
+    {L"轨道尺寸", L"Track Size", L"軌道サイズ"},
+    // 117
+    {L"方块动画", L"Block Animation", L"ブロックアニメーション"},
+    // 118
+    {L"轨道背景透明度", L"Track BG Alpha", L"トラック背景透明度"},
+    // 119
+    {L"显示区域边界", L"Show Boundary", L"境界表示"},
+    // 120
+    {L"主题预设", L"Theme Presets", L"テーマプリセット"},
+    // 121
+    {L"背景色", L"BG Color", L"背景色"},
+    // 122
+    {L"字体色", L"Font Color", L"フォント色"},
+    // 123
+    {L"线条色", L"Line Color", L"ライン色"},
+    // 124
+    {L"宽", L"W", L"幅"},
+    // 125
+    {L"高", L"H", L"高さ"},
+    // 126
+    {L"图表类型", L"Chart Type", L"チャートタイプ"},
+    // 127
+    {L"边距", L"Margins", L"余白"},
+    // 128
+    {L"颜色", L"Colors", L"色"},
+    // 129
+    {L"外观", L"Appearance", L"外観"},
+    // 130
+    {L"吸附", L"Snap", L"スナップ"},
+    // 131
+    {L"吸附到按键映射下方", L"Snap below keys", L"キー下にスナップ"},
+    // 132
+    {L"确定", L"OK", L"OK"},
+    // 133
+    {L"取消", L"Cancel", L"キャンセル"},
+    // 134
+    {L"重置确认", L"Reset Confirm", L"リセット確認"},
+    // 135
+    {L"捕获按键", L"Capture Key", L"キーキャプチャ"},
+    // 136
+    {L"捕获录制快捷键", L"Capture Record Key", L"録画キーキャプチャ"},
+    // 137
+    {L"名称", L"Name", L"名前"},
+    // 138
+    {L"音符划分", L"Note Division", L"音符分割"},
+    // 139
+    {L"当前字体: %s", L"Current Font: %s", L"現在のフォント: %s"},
+    // 140
+    {L"选择字体...", L"Choose Font...", L"フォント選択..."},
+    // 141
+    {L"轨道方向", L"Track Direction", L"軌道方向"},
+    // 142
+    {L"自由模式", L"Free Mode", L"フリーモード"},
+    // 143
+    {L"布局", L"Layout", L"レイアウト"},
+    // 144
+    {L"尺寸", L"Size", L"サイズ"},
+    // 145
+    {L"窗口", L"Window", L"ウィンドウ"},
+    // 146
+    {L"字体", L"Font", L"フォント"},
+    // 147
+    {L"透明度", L"Alpha", L"透明度"},
+    // 148
+    {L"按下设置的快捷键开始/停止录制。", L"Press hotkey to start/stop recording.", L"ショートカットキーで録画開始/停止。"},
+    // 149
+    {L"点击设置录制快捷键…", L"Click to set record hotkey…", L"クリックして録画キー設定…"},
+    // 150
+    {L"边框颜色", L"Border Color", L"枠線色"},
+    // 151
+    {L"快捷键设置", L"Hotkey Settings", L"ショートカット設定"},
+    // 152
+    {L"UI 主题", L"UI Theme", L"UIテーマ"},
+    // 153
+    {L"红", L"Red", L"赤"},
+    // 154
+    {L"橙", L"Orange", L"橙"},
+    // 155
+    {L"黄", L"Yellow", L"黄"},
+    // 156
+    {L"绿", L"Green", L"緑"},
+    // 157
+    {L"蓝", L"Blue", L"青"},
+    // 158
+    {L"靛", L"Indigo", L"藍"},
+    // 159
+    {L"紫", L"Purple", L"紫"},
+    // 160
+    {L"● 未录制", L"● Idle", L"● 未録画"},
+    // 161
+    {L"● 录制中", L"● Recording", L"● 録画中"},
+    // 162
+    {L"输出目录", L"Output Dir", L"出力先"},
+    // 163
+    {L"选择目录...", L"Browse...", L"選択..."},
+    // 164
+    {L"轨道:", L"Track:", L"軌道:"},
+    // 165
+    {L"上浮/下沉速率 (px/s)", L"Rise/Sink Speed (px/s)", L"上昇/下降速度 (px/s)"},
+    // 166
+    {L"区域宽度 (px)", L"Area Width (px)", L"領域幅 (px)"},
+    // 167
+    {L"区域高度 (px)", L"Area Height (px)", L"領域高さ (px)"},
+    // 168
+    {L"宽度 (px)", L"Width (px)", L"幅 (px)"},
+    // 169
+    {L"高度 (px)", L"Height (px)", L"高さ (px)"},
+    // 170
+    {L"左边距 (px)", L"Margin L (px)", L"左余白 (px)"},
+    // 171
+    {L"右边距 (px)", L"Margin R (px)", L"右余白 (px)"},
+    // 172
+    {L"上边距 (px)", L"Margin T (px)", L"上余白 (px)"},
+    // 173
+    {L"下边距 (px)", L"Margin B (px)", L"下余白 (px)"},
+    // 174
+    {L"圆角 (px)", L"Radius (px)", L"角丸 (px)"},
+    // 175
+    {L"X 偏移 (px)", L"X Offset (px)", L"X オフセット (px)"},
+    // 176
+    {L"Y 偏移 (px)", L"Y Offset (px)", L"Y オフセット (px)"},
+    // 177
+    {L"重置默认", L"Reset Default", L"デフォルトに戻す"},
+    // 178
+    {L"设置面板", L"Settings Panel", L"設定パネル"},
+    // 179
+    {L"主题编辑器", L"Theme Editor", L"テーマエディタ"},
+    // 180
+    {L"切换按键映射", L"Toggle Key Display", L"キー表示切替"},
+    // 181
+    {L"下一个主题", L"Next Theme", L"次のテーマ"},
+    // 182
+    {L"上一个主题", L"Prev Theme", L"前のテーマ"},
+    // 183
+    {L"切换轨道", L"Toggle Track", L"トラック切替"},
+    // 184
+    {L"切换图表", L"Toggle Chart", L"チャート切替"},
+    // 185
+    {L"所有快捷键均使用 Ctrl+Shift+[按键] 组合。点击按钮后按下新按键即可修改。", L"All hotkeys use Ctrl+Shift+[key]. Click button then press a new key.", L"全てのショートカットは Ctrl+Shift+[キー]。ボタン→新キー押下で変更。"},
+    // 186
+    {L"按任意键… (ESC取消)", L"Press any key… (ESC cancel)", L"キーを押してください… (ESC取消)"},
+    // 187
+    {L"编辑: ", L"Edit: ", L"編集: "},
+    // 188
+    {L"图表背景", L"Chart BG", L"チャート背景"},
+    // 189
+    {L"图表线条", L"Chart Line", L"チャート線"},
 };
 
 const wchar_t* LANG(int key) {

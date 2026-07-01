@@ -64,10 +64,14 @@ void DisplayUI::UpdateOverlay(const AppConfig& cfg, const KeyStateManager& ksm) 
     blend.SourceConstantAlpha = (BYTE)(cfg.overlayOpacity * 255);
     blend.AlphaFormat         = AC_SRC_ALPHA;
 
-    // 计算轨道偏移
+    // V1.6: 计算轨道偏移（反转模式下轨道在按键下方，无需偏移）
     int trackOffsetY = 0;
     if (cfg.showHistory && !cfg.keys.empty()) {
-        trackOffsetY = cfg.historyTrackH + cfg.historyTrackGap;
+        if (cfg.historyTrackReverse) {
+            trackOffsetY = 0;  // 反转模式：轨道在按键下方，窗口无需上移
+        } else {
+            trackOffsetY = cfg.historyTrackH + cfg.historyTrackGap;
+        }
     }
     // 自由模式：渲染器在 bitmap 左侧/顶部加了 10px margin，窗口位置左移/上移补偿
     POINT ptDst = {cfg.displayX - (cfg.freeMode ? 10 : 0),
@@ -152,6 +156,7 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             if (self->m_cfg->showHistory && !self->m_cfg->keys.empty()) {
                 trackOffsetY = self->m_cfg->historyTrackH + self->m_cfg->historyTrackGap;
             }
+            // V1.6: hit test = displayX + freeX (window 和 bitmap 各 +/-10px margin，正负抵消)
             int winX = self->m_cfg->displayX;
             int winY = self->m_cfg->displayY - trackOffsetY;
 
@@ -208,7 +213,7 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             }
 
             if (self->m_freeDragIdx == -1) {
-                // 拖拽窗口整体
+                // 拖拽窗口整体（使用逻辑坐标 displayX/displayY，实际窗口位置由 UpdateOverlay 自动加 margin）
                 self->m_dragOffset.x = cx - self->m_cfg->displayX;
                 self->m_dragOffset.y = cy - (self->m_cfg->displayY - trackOffsetY);
             }
@@ -225,9 +230,9 @@ LRESULT CALLBACK DisplayUI::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         if (self->m_dragging && self->m_cfg) {
             POINT pt;
             GetCursorPos(&pt);
-            // 网格吸附辅助函数（仅边界显示时生效，隐藏即固定布局）
+            // V1.6: 网格吸附始终启用（边界显示时生效，隐藏即固定布局）
             auto snapToGrid = [&](int& v) {
-                if (self->m_cfg->freeShowBoundary && self->m_cfg->freeGridSnap && self->m_cfg->freeGridSize > 4) {
+                if (self->m_cfg->freeShowBoundary && self->m_cfg->freeGridSize > 4) {
                     int gs = self->m_cfg->freeGridSize;
                     v = ((v + gs / 2) / gs) * gs;
                 }

@@ -80,6 +80,18 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
     auto boxW = [&](int bw) -> int { return bw > 0 ? bw : ks; };
     auto boxH = [&](int bh) -> int { return bh > 0 ? bh : ks; };
 
+    // V1.6: 提前计算最大元素高度，供轨道位置使用
+    int maxElemH = ks;
+    for (int i = 0; i < nKeys; ++i) {
+        int kh = (cfg.keys[i].customH > 0) ? cfg.keys[i].customH : ks;
+        if (kh > maxElemH) maxElemH = kh;
+    }
+    if (!cfg.freeMode) {
+        if (cfg.showSummary && nKeys > 0) { int bh = boxH(cfg.totalBoxH); if (bh > maxElemH) maxElemH = bh; }
+        if (cfg.showKPS   && nKeys > 0) { int bh = boxH(cfg.kpsBoxH);   if (bh > maxElemH) maxElemH = bh; }
+        if (cfg.showBPM   && nKeys > 0) { int bh = boxH(cfg.bpmBoxH);   if (bh > maxElemH) maxElemH = bh; }
+    }
+
     // === 自由模式 vs 常规模式尺寸计算 ===
     if (cfg.freeMode) {
         const int fm = 10;
@@ -109,15 +121,6 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
             totalW += boxW(cfg.bpmBoxW) + gap;
             boxOrder++;
         }
-        // 常规模式高度：取所有元素的最大高度撑开窗口
-        int maxElemH = ks;
-        for (int i = 0; i < nKeys; ++i) {
-            int kh = (cfg.keys[i].customH > 0) ? cfg.keys[i].customH : ks;
-            if (kh > maxElemH) maxElemH = kh;
-        }
-        if (cfg.showSummary && nKeys > 0) { int bh = boxH(cfg.totalBoxH); if (bh > maxElemH) maxElemH = bh; }
-        if (cfg.showKPS   && nKeys > 0) { int bh = boxH(cfg.kpsBoxH);   if (bh > maxElemH) maxElemH = bh; }
-        if (cfg.showBPM   && nKeys > 0) { int bh = boxH(cfg.bpmBoxH);   if (bh > maxElemH) maxElemH = bh; }
         outW = totalW;
         outH = maxElemH + gap * 2 + trackH + trackGap;
     }
@@ -173,15 +176,18 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
         }
     } else bpmKPS = sumKPS;
 
-    int keyY = trackH + gap + trackGap; // 按键框 Y 偏移（轨道 + 间距）
+    // V1.6: 根据轨道反转计算按键与轨道的位置
+    bool trackReversed = cfg.historyTrackReverse;
+    int keyY = trackReversed ? gap : (trackH + gap + trackGap);
+    int trackY = trackReversed ? (gap + maxElemH + trackGap) : gap;
 
     // 先绘制轨道（在按键背景层之下，按实际宽度顺序排列）
     if (hasHistory && !cfg.freeMode) {
         int curHx = gap;
         for (int i = 0; i < nKeys; ++i) {
             int kw = (cfg.keys[i].customW > 0) ? cfg.keys[i].customW : ks;
-            DrawHistoryTrack(g, cfg, cfg.keys[i].keyCode, ksm, curHx, gap, kw, trackH,
-                             cfg.keys[i].colorPress);
+            DrawHistoryTrack(g, cfg, cfg.keys[i].keyCode, ksm, curHx, trackY, kw, trackH,
+                             cfg.keys[i].colorPress, trackReversed);
             curHx += kw + gap;
         }
     }
@@ -217,8 +223,8 @@ bool Renderer::Render(const AppConfig& cfg, const KeyStateManager& ksm,
             return (h > 0) ? h : ks;
         };
 
-        // 绘制网格（边界显示 && 网格吸附启用时）
-        if (cfg.freeShowBoundary && cfg.freeGridSnap && cfg.freeGridSize > 4) {
+        // V1.6: 网格吸附始终启用，显示边界时绘制网格
+        if (cfg.freeShowBoundary && cfg.freeGridSize > 4) {
             int gs = cfg.freeGridSize;
             Gdiplus::Pen gridPen(Gdiplus::Color(25, 200, 200, 200), 1.0f);
             for (int gx = margin; gx <= margin + areaW; gx += gs)
@@ -393,6 +399,10 @@ void Renderer::DrawKeyBox(Gdiplus::Graphics& g, const KeyConfig& kc,
         operator Gdiplus::GraphicsPath*() { return &path; }
     };
 
+    // 边框颜色（使用独立配置，否则回退到 curFont 搭配 alpha=180）
+    RgbaColor bc = kc.colorBorder;
+    if (bc.a == 0) bc = {curFont.r, curFont.g, curFont.b, 180};
+
     // 光晕（缓动透明度）
     if (t > 0.001f) {
         // 外层柔光
@@ -429,9 +439,9 @@ void Renderer::DrawKeyBox(Gdiplus::Graphics& g, const KeyConfig& kc,
     RoundedRect boxPath(bx, by, w, h, r);
     g.FillPath(&bgBrush, boxPath);
 
-    // 边框
+    // 边框（使用独立边框颜色）
     if (borderW > 0) {
-        Gdiplus::Color borderColor(180, curFont.r, curFont.g, curFont.b);
+        Gdiplus::Color borderColor(bc.a, bc.r, bc.g, bc.b);
         Gdiplus::Pen borderPen(borderColor, (float)borderW);
         g.DrawPath(&borderPen, boxPath);
     }
@@ -492,11 +502,11 @@ static void DrawRoundedBlock(Gdiplus::Graphics& g,
                               int cx, int cy, int cw, int ch, int r,
                               Gdiplus::Brush* brush);
 
-// ========== 绘制历史轨道 ==========
+// ========== 绘制历史轨道（V1.6: 支持反转） ==========
 void Renderer::DrawHistoryTrack(Gdiplus::Graphics& g, const AppConfig& cfg, int keyCode,
                                  const KeyStateManager& ksm,
                                  int x, int y, int keyW, int trackH,
-                                 const RgbaColor& pressColor) {
+                                 const RgbaColor& pressColor, bool reversed) {
     // 轨道背景
     int ta = (int)(cfg.historyTrackAlpha * 2.55f); if(ta<0)ta=0; if(ta>255)ta=255;
     Gdiplus::SolidBrush trackBg(Gdiplus::Color((BYTE)ta, 255, 255, 255));
@@ -515,55 +525,99 @@ void Renderer::DrawHistoryTrack(Gdiplus::Graphics& g, const AppConfig& cfg, int 
     const float growSpeed  = (float)cfg.historyGrowSpeed  / 1000.0f; // px/ms
     const float floatSpeed = (float)cfg.historyFloatSpeed / 1000.0f;
     const int   maxBlockH  = trackH * cfg.historyBlockMax / 100;  // 轨道百分比上限
+    const int   trackBottom = y + trackH;
 
-    // ===== 1. 正在按住的方块（底部向上增长） =====
-    if (ksm.IsDown(keyCode)) {
-        uint64_t startTime = ksm.GetPressStartTime(keyCode);
-        if (startTime > 0) {
-            uint64_t heldMs = now - startTime;
-            int blockH = (int)(heldMs * growSpeed);
+    if (!reversed) {
+        // ===== 正常模式：底部向上增长，上浮 =====
+        // ===== 1. 正在按住的方块（底部向上增长） =====
+        if (ksm.IsDown(keyCode)) {
+            uint64_t startTime = ksm.GetPressStartTime(keyCode);
+            if (startTime > 0) {
+                uint64_t heldMs = now - startTime;
+                int blockH = (int)(heldMs * growSpeed);
+                if (blockH > maxBlockH) blockH = maxBlockH;
+                if (blockH < 2) blockH = 2;
+
+                int blockY = trackBottom - blockH;
+                int ba = cfg.historyBlockAlpha; if(ba<0)ba=0; if(ba>255)ba=255;
+                Gdiplus::SolidBrush blockBrush(Gdiplus::Color(
+                    (BYTE)ba, pressColor.r, pressColor.g, pressColor.b));
+                DrawRoundedBlock(g, cx, blockY, blockW, blockH, 3, &blockBrush);
+            }
+        }
+
+        // ===== 2. 已松开的方块（匀速上浮） =====
+        const auto& durations = ksm.GetPressDurations(keyCode);
+        for (auto const& ps : durations) {
+            uint64_t age = now - ps.releaseTime;
+            int blockH = (int)(ps.durationMs * growSpeed);
             if (blockH > maxBlockH) blockH = maxBlockH;
             if (blockH < 2) blockH = 2;
 
-            int blockY = y + trackH - blockH;
-            int ba = cfg.historyBlockAlpha; if(ba<0)ba=0; if(ba>255)ba=255;
+            float floated = age * floatSpeed;
+            int blockY = trackBottom - blockH - (int)floated;
+
+            if (blockY + blockH <= y) continue;
+            if (blockY < y) {
+                blockH -= (y - blockY);
+                blockY  = y;
+            }
+
+            int alpha = (int)(cfg.historyBlockAlpha * (1.0f - (floated / (trackH + blockH)) * 0.7f));
+            if (alpha < 15) alpha = 15;
+            if (alpha > cfg.historyBlockAlpha) alpha = cfg.historyBlockAlpha;
+
             Gdiplus::SolidBrush blockBrush(Gdiplus::Color(
-                (BYTE)ba, pressColor.r, pressColor.g, pressColor.b));
+                (BYTE)alpha, pressColor.r, pressColor.g, pressColor.b));
             DrawRoundedBlock(g, cx, blockY, blockW, blockH, 3, &blockBrush);
         }
-    }
+    } else {
+        // ===== 反转模式：顶部向下增长，下沉 =====
+        // ===== 1. 正在按住的方块（顶部向下增长） =====
+        if (ksm.IsDown(keyCode)) {
+            uint64_t startTime = ksm.GetPressStartTime(keyCode);
+            if (startTime > 0) {
+                uint64_t heldMs = now - startTime;
+                int blockH = (int)(heldMs * growSpeed);
+                if (blockH > maxBlockH) blockH = maxBlockH;
+                if (blockH < 2) blockH = 2;
 
-    // ===== 2. 已松开的方块（匀速上浮） =====
-    const auto& durations = ksm.GetPressDurations(keyCode);
-    for (auto const& ps : durations) {
-        uint64_t age = now - ps.releaseTime; // 松开后经过的时间
-
-        // 高度由按住时的增长决定
-        int blockH = (int)(ps.durationMs * growSpeed);
-        if (blockH > maxBlockH) blockH = maxBlockH;
-        if (blockH < 2) blockH = 2;
-
-        // 方块底部位置 = 轨道底部 - 已浮起距离
-        float floated = age * floatSpeed;
-        int blockY = y + trackH - blockH - (int)floated;
-
-        // 完全浮出顶部则消失
-        if (blockY + blockH <= y) continue;
-
-        // 顶部裁剪
-        if (blockY < y) {
-            blockH -= (y - blockY);
-            blockY  = y;
+                int blockY = y;  // 从顶部开始
+                int ba = cfg.historyBlockAlpha; if(ba<0)ba=0; if(ba>255)ba=255;
+                Gdiplus::SolidBrush blockBrush(Gdiplus::Color(
+                    (BYTE)ba, pressColor.r, pressColor.g, pressColor.b));
+                DrawRoundedBlock(g, cx, blockY, blockW, blockH, 3, &blockBrush);
+            }
         }
 
-        // 透明度：刚松开不透明，越远越淡
-        int alpha = (int)(cfg.historyBlockAlpha * (1.0f - (floated / (trackH + blockH)) * 0.7f));
-        if (alpha < 15) alpha = 15;
-        if (alpha > cfg.historyBlockAlpha) alpha = cfg.historyBlockAlpha;
+        // ===== 2. 已松开的方块（匀速下沉） =====
+        const auto& durations = ksm.GetPressDurations(keyCode);
+        for (auto const& ps : durations) {
+            uint64_t age = now - ps.releaseTime;
+            int blockH = (int)(ps.durationMs * growSpeed);
+            if (blockH > maxBlockH) blockH = maxBlockH;
+            if (blockH < 2) blockH = 2;
 
-        Gdiplus::SolidBrush blockBrush(Gdiplus::Color(
-            (BYTE)alpha, pressColor.r, pressColor.g, pressColor.b));
-        DrawRoundedBlock(g, cx, blockY, blockW, blockH, 3, &blockBrush);
+            float floated = age * floatSpeed;
+            int blockY = y + (int)floated;  // 从顶部开始下沉
+
+            // 完全沉出底部则消失
+            if (blockY >= trackBottom) continue;
+
+            // 底部裁剪
+            if (blockY + blockH > trackBottom) {
+                blockH = trackBottom - blockY;
+            }
+
+            // 透明度：刚松开不透明，越远越淡
+            int alpha = (int)(cfg.historyBlockAlpha * (1.0f - (floated / (trackH + blockH)) * 0.7f));
+            if (alpha < 15) alpha = 15;
+            if (alpha > cfg.historyBlockAlpha) alpha = cfg.historyBlockAlpha;
+
+            Gdiplus::SolidBrush blockBrush(Gdiplus::Color(
+                (BYTE)alpha, pressColor.r, pressColor.g, pressColor.b));
+            DrawRoundedBlock(g, cx, blockY, blockW, blockH, 3, &blockBrush);
+        }
     }
 }
 

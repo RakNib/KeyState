@@ -42,7 +42,7 @@ private:
                     bool showTotal, bool showKPS, int globalFontSize);
     void DrawHistoryTrack(Gdiplus::Graphics& g, const AppConfig& cfg, int keyCode,
                           const KeyStateManager& ksm, int x, int y, int keyW, int trackH,
-                          const RgbaColor& pressColor);
+                          const RgbaColor& pressColor, bool reversed);
     void DrawDataBox(Gdiplus::Graphics& g, int x, int y, int w, int h, int radius,
                      RgbaColor bg, RgbaColor fc, const wchar_t* symbol,
                      const wchar_t* value, int symbolSz = 0);

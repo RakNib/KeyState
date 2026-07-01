@@ -25,6 +25,7 @@ struct KeyConfig {
     RgbaColor colorFont     = {235, 235, 245, 255};
     RgbaColor colorNormal   = {48,  48,  48,  200};
     RgbaColor colorPress    = {255, 95,  95,  255};
+    RgbaColor colorBorder  = {235, 235, 245, 180}; // 边框颜色
     uint64_t totalPresses    = 0;
     // 自由模式位置
     int     freeX          = 0;
@@ -36,7 +37,7 @@ struct KeyConfig {
 
 // 应用全局配置
 struct AppConfig {
-    int     version        = 4;
+    int     version        = 5;       // V1.6
     bool    showTotal      = true;
     bool    showKPS        = true;
     bool    showBPM        = false;   // 汇总框显示 BPM
@@ -53,6 +54,7 @@ struct AppConfig {
     int     historyTrackAlpha= 18;     // 轨道背景透明度 (0-100)
     int     historyBlockAlpha=255;     // 方块透明度 (0-255)
     bool    historyShowLines = true;   // 显示轨道边界线
+    bool    historyTrackReverse = false; // V1.6: 轨道反转（向下生长）
     RgbaColor totalBoxBg = {255,255,255,210};
     RgbaColor totalBoxFc = {0,0,0,255};
     RgbaColor kpsBoxBg   = {255,255,255,210};
@@ -105,9 +107,8 @@ struct AppConfig {
     int     freeAreaW      = 600;    // 自由布局区域宽度
     int     freeAreaH      = 400;    // 自由布局区域高度
     bool    freeShowBoundary = true; // 显示区域边界线
-    // V1.5: 自由模式网格吸附
-    bool    freeGridSnap   = true;   // 是否启用网格吸附（默认开启）
-    int     freeGridSize   = 20;     // 网格大小 (px)
+    // V1.6: 网格吸附始终启用，网格大小可调
+    int     freeGridSize   = 16;     // 网格大小 (px) V1.6 默认16px
     // 自由模式下 Total/KPS/BPM 框位置
     int     freeTotalX     = 0;
     int     freeTotalY     = 0;
@@ -117,6 +118,9 @@ struct AppConfig {
     int     freeBPMY       = 0;
     // 录制功能
     int     recordingHotkeyVK = 0;    // 录制快捷键 VK 码（0=未设置）
+    std::wstring recordingDir;        // 录制文件输出目录（空=默认exe目录下的record）
+    // ImGui UI 主题
+    int     uiTheme          = 0;     // 0=抹茶(白天), 1=紫夜(黑夜)
     // 全局快捷键（VK 码，均使用 Ctrl+Shift+[VK] 组合）
     int     hotkeySettingsVK      = 'K';  // 打开设置面板
     int     hotkeyThemeEditorVK   = 'T';  // 打开主题编辑器

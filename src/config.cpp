@@ -163,6 +163,7 @@ bool AppConfig::Load(const wchar_t* filepath) {
     if (auto* v = root.Find(L"historyTrackAlpha"))historyTrackAlpha=(int)v->num;
     if (auto* v = root.Find(L"historyBlockAlpha"))historyBlockAlpha=(int)v->num;
     if (auto* v = root.Find(L"historyShowLines")) historyShowLines = v->bl;
+    if (auto* v = root.Find(L"historyTrackReverse")) historyTrackReverse = v->bl;
     if (auto* v = root.Find(L"fps"))              fps = (int)v->num;
     if (auto* v = root.Find(L"clickThrough"))     clickThrough = v->bl;
     if (auto* v = root.Find(L"alwaysOnTop"))      alwaysOnTop  = v->bl;
@@ -201,7 +202,6 @@ bool AppConfig::Load(const wchar_t* filepath) {
     if (auto* v = root.Find(L"freeAreaW"))      freeAreaW   = (int)v->num;
     if (auto* v = root.Find(L"freeAreaH"))      freeAreaH   = (int)v->num;
     if (auto* v = root.Find(L"freeShowBoundary")) freeShowBoundary = v->bl;
-    if (auto* v = root.Find(L"freeGridSnap"))   freeGridSnap = v->bl;
     if (auto* v = root.Find(L"freeGridSize"))   freeGridSize = (int)v->num;
     if (auto* v = root.Find(L"freeTotalX"))     freeTotalX  = (int)v->num;
     if (auto* v = root.Find(L"freeTotalY"))     freeTotalY  = (int)v->num;
@@ -210,6 +210,8 @@ bool AppConfig::Load(const wchar_t* filepath) {
     if (auto* v = root.Find(L"freeBPMX"))       freeBPMX    = (int)v->num;
     if (auto* v = root.Find(L"freeBPMY"))       freeBPMY    = (int)v->num;
     if (auto* v = root.Find(L"recordingHotkeyVK")) recordingHotkeyVK = (int)v->num;
+    if (auto* v = root.Find(L"recordingDir"))     recordingDir = v->str;
+    if (auto* v = root.Find(L"uiTheme"))           uiTheme = (int)v->num;
     if (auto* v = root.Find(L"hotkeySettingsVK"))      hotkeySettingsVK      = (int)v->num;
     if (auto* v = root.Find(L"hotkeyThemeEditorVK"))   hotkeyThemeEditorVK   = (int)v->num;
     if (auto* v = root.Find(L"hotkeyToggleDisplayVK")) hotkeyToggleDisplayVK = (int)v->num;
@@ -246,6 +248,7 @@ bool AppConfig::Load(const wchar_t* filepath) {
                 applyColor(L"colorFont",   kc.colorFont);
                 applyColor(L"colorNormal", kc.colorNormal);
                 applyColor(L"colorPress",  kc.colorPress);
+                applyColor(L"colorBorder",  kc.colorBorder);
 
                 keys.push_back(kc);
             }
@@ -295,6 +298,7 @@ bool AppConfig::Save(const wchar_t* filepath) const {
     wInt(L"historyTrackAlpha", historyTrackAlpha);
     wInt(L"historyBlockAlpha", historyBlockAlpha);
     wBool(L"historyShowLines", historyShowLines);
+    wBool(L"historyTrackReverse", historyTrackReverse);
     auto wBoxCol = [&](const wchar_t* k, const RgbaColor& c) { WriteColor(out,1,k,c); out+=L",\n"; };
     wBoxCol(L"totalBoxBg",totalBoxBg); wBoxCol(L"totalBoxFc",totalBoxFc);
     wBoxCol(L"kpsBoxBg",kpsBoxBg);   wBoxCol(L"kpsBoxFc",kpsBoxFc);
@@ -341,7 +345,6 @@ bool AppConfig::Save(const wchar_t* filepath) const {
     wInt(L"freeAreaW", freeAreaW);
     wInt(L"freeAreaH", freeAreaH);
     wBool(L"freeShowBoundary", freeShowBoundary);
-    wBool(L"freeGridSnap", freeGridSnap);
     wInt(L"freeGridSize", freeGridSize);
     wInt(L"freeTotalX", freeTotalX);
     wInt(L"freeTotalY", freeTotalY);
@@ -350,6 +353,8 @@ bool AppConfig::Save(const wchar_t* filepath) const {
     wInt(L"freeBPMX", freeBPMX);
     wInt(L"freeBPMY", freeBPMY);
     wInt(L"recordingHotkeyVK", recordingHotkeyVK);
+    WriteIndent(out, 1); out += L"\"recordingDir\": \"" + recordingDir + L"\",\n";
+    wInt(L"uiTheme", uiTheme);
     wInt(L"hotkeySettingsVK",      hotkeySettingsVK);
     wInt(L"hotkeyThemeEditorVK",   hotkeyThemeEditorVK);
     wInt(L"hotkeyToggleDisplayVK", hotkeyToggleDisplayVK);
@@ -368,11 +373,11 @@ bool AppConfig::Save(const wchar_t* filepath) const {
         WriteColor(out, 3, L"colorFont",   kc.colorFont);   out += L",\n";
         WriteColor(out, 3, L"colorNormal", kc.colorNormal); out += L",\n";
         WriteColor(out, 3, L"colorPress",  kc.colorPress);  out += L",\n";
+        WriteColor(out, 3, L"colorBorder", kc.colorBorder); out += L",\n";
         WriteIndent(out, 3); out += L"\"totalPresses\": " + std::to_wstring(kc.totalPresses) + L",\n";
         WriteIndent(out, 3); out += L"\"freeX\": " + std::to_wstring(kc.freeX) + L",\n";
         WriteIndent(out, 3); out += L"\"freeY\": " + std::to_wstring(kc.freeY) + L",\n";
         WriteIndent(out, 3); out += L"\"customW\": " + std::to_wstring(kc.customW) + L",\n";
-        WriteIndent(out, 3); out += L"\"customH\": " + std::to_wstring(kc.customH) + L",\n";
         WriteIndent(out, 3); out += L"\"customH\": " + std::to_wstring(kc.customH);
         out += L"\n";
         WriteIndent(out, 2); out += L"}";
